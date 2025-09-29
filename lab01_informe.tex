@@ -1,0 +1,129 @@
+\documentclass[letter,12pt]{article}
+\usepackage[paperheight=27.94cm,paperwidth=21.59cm,bindingoffset=0in,left=3cm,right=2.0cm, top=3.5cm,bottom=2.5cm, headheight=200pt, headsep=1.0\baselineskip]{geometry}
+\usepackage{graphicx,lastpage}
+\usepackage{upgreek}
+\usepackage{censor}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{pdfpages}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{rotating}
+\usepackage{multirow}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+\usepackage{hyperref}
+
+\renewcommand{\tablename}{Tabla}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\fancyhead[L]{}
+%
+\begin{document}
+%
+   \title{\Huge{Informe Laboratorio 2}}
+
+   \author{\textbf{Sección x} \\  \\Alumno x \\ e-mail: alumno.contacto@mail.udp.cl}
+          
+   \date{Septiembre de 2025}
+
+   \maketitle
+   
+   \tableofcontents
+ 
+  \newpage
+  
+
+\section{Descripción de actividades}
+Utilizando la aplicación web vulnerable DVWA
+
+(Damn Vulnerable Web App - \href{https://github.com/digininja/DVWA}{https://github.com/digininja/DVWA} (Enlaces a un sitio externo.)) realice las siguientes actividades:
+
+
+\begin{itemize}
+    \item Despliegue la aplicación en su equipo utilizando docker. Detalle el procedimiento y explique los parámetros que utilizó.
+    \item Utilice Burpsuite (https://portswigger.net/burp/communitydownload (Enlaces a un sitio externo.)) para realizar un ataque de fuerza bruta contra formulario ubicado en vulnerabilities/brute. Explique el proceso y obtenga al menos 2 pares de usuario/contraseña válidos. Muestre las diferencias observadas en burpsuite.
+    \item Utilice la herramienta cURL, a partir del código obtenido de inspect elements de su navegador, para realizar un acceso válido y uno inválido al formulario ubicado en vulnerabilities/brute. Indique 4 diferencias entre la página que retorna el acceso válido y la página que retorna un acceso inválido.
+    \item Utilice la herramienta Hydra para realizar un ataque de fuerza bruta contra formulario ubicado en vulnerabilities/brute. Explique el proceso y obtenga al menos 2 pares de usuario/contraseña válidos.
+    \item Compare los paquetes generados por hydra, burpsuite y cURL. ¿Qué diferencias encontró? ¿Hay forma de detectar a qué herramienta corresponde cada paquete?
+
+    \item Desarrolle un script en Python para realizar un ataque de fuerza bruta:
+
+    \begin{itemize}
+        \item Utilice la librería requests para interactuar con el formulario ubicado en vulnerabilities/brute y desarrollar su propio script de fuerza bruta en Python.
+        El script debe realizar intentos de inicio de sesión probando una lista de combinaciones de usuario/contraseña.
+
+        \item  Identifique y explique la cabecera HTTP que empleará para realizar el ataque de fuerza bruta.
+
+        \item  Muestre el código y los resultados obtenidos (al menos 2 combinaciones válidas de usuario/contraseña).
+
+        \item Compare el rendimiento de este script en Python con las herramientas Hydra, Burpsuite, y cURL en términos de velocidad y detección.
+    \end{itemize}
+
+    \item  Investigue y describa 4 métodos comunes para prevenir o mitigar ataques de fuerza bruta en aplicaciones web:
+
+    \begin{itemize}
+        \item Para cada método, explique su funcionamiento, destacando en qué escenarios es más eficaz.
+
+    \end{itemize}
+
+
+    
+\end{itemize}
+
+\section{Desarrollo de actividades según criterio de rúbrica}
+
+\subsection{Levantamiento de docker para correr DVWA (dvwa)}
+
+\subsection{Redirección de puertos en docker (dvwa)}
+
+\subsection{Obtención de consulta a replicar (burp)}
+
+\subsection{Identificación de campos a modificar (burp)}
+
+\subsection{Obtención de diccionarios para el ataque (burp)}
+
+\subsection{Obtención de al menos 2 pares (burp)}
+
+\subsection{Obtención de código de inspect element (curl)}
+
+\subsection{Utilización de curl por terminal (curl)}
+
+\subsection{Demuestra 4 diferencias (curl)}
+
+\subsection{Instalación y versión a utilizar (hydra)}
+
+\subsection{Explicación de comando a utilizar (hydra)}
+
+\subsection{Obtención de al menos 2 pares (hydra)}
+
+\subsection{Explicación paquete curl (tráfico)}
+
+\subsection{Explicación paquete burp (tráfico)}
+
+\subsection{Explicación paquete hydra (tráfico)}
+
+\subsection{Mención de las diferencias (tráfico)}
+
+\subsection{Detección de SW (tráfico)}
+
+\subsection{Interacción con el formulario (python)}
+
+\subsection{Cabeceras HTTP (python)}
+
+\subsection{Obtención de al menos 2 pares (python)}
+
+\subsection{Comparación de rendimiento con Hydra, Burpsuite, y cURL (python)}
+
+\newpage
+\subsection{Demuestra 4 métodos de mitigación (investigación)}
+
+% Please add the following required packages to your document preamble:
+%\begin{table}[htbp]
+
+\section*{Conclusiones y comentarios}
+
+\end{document}
