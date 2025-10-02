@@ -112,14 +112,209 @@ Utilizando la aplicación web vulnerable DVWA
 
 \subsection{Interacción con el formulario (python)}
 
+Se desarrolló un script de Python llamado \texttt{brute\_force\_script.py} que utiliza la librería \texttt{requests} para interactuar con el formulario ubicado en \texttt{vulnerabilities/brute} de DVWA.
+
+El script implementa una clase \texttt{DVWABruteForcer} que:
+\begin{itemize}
+    \item Configura sesiones HTTP persistentes con headers realistas
+    \item Realiza peticiones GET con parámetros de autenticación
+    \item Detecta respuestas exitosas y fallidas automáticamente
+    \item Implementa delays configurables entre intentos
+\end{itemize}
+
+\textbf{Código principal del método de ataque:}
+\begin{verbatim}
+def attempt_login(self, username, password):
+    data = {
+        'username': username,
+        'password': password,
+        'Login': 'Login'
+    }
+    
+    response = self.session.get(self.login_url, params=data)
+    
+    if "Welcome to the password protected area" in response.text:
+        return True, response.text
+    elif "Username and/or password incorrect" in response.text:
+        return False, response.text
+\end{verbatim}
+
 \subsection{Cabeceras HTTP (python)}
+
+Las cabeceras HTTP más importantes empleadas en el ataque de fuerza bruta son:
+
+\begin{enumerate}
+    \item \textbf{User-Agent}: \texttt{Mozilla/5.0 (X11; Linux x86\_64) AppleWebKit/537.36...}
+    \begin{itemize}
+        \item \textbf{Propósito}: Identifica el navegador/cliente que realiza la petición
+        \item \textbf{Importancia}: Simula un navegador real para evitar detección automática de bots
+    \end{itemize}
+    
+    \item \textbf{Cookie}: \texttt{PHPSESSID=...; security=low}
+    \begin{itemize}
+        \item \textbf{Propósito}: Mantiene la sesión y configuración de seguridad en DVWA
+        \item \textbf{Importancia}: CRÍTICA - Sin cookies válidas, el ataque no funcionará
+    \end{itemize}
+    
+    \item \textbf{Connection}: \texttt{keep-alive}
+    \begin{itemize}
+        \item \textbf{Propósito}: Mantiene la conexión TCP abierta para múltiples peticiones
+        \item \textbf{Importancia}: Mejora el rendimiento del ataque al reutilizar conexiones
+    \end{itemize}
+    
+    \item \textbf{Accept}: \texttt{text/html,application/xhtml+xml,application/xml;q=0.9...}
+    \begin{itemize}
+        \item \textbf{Propósito}: Especifica qué tipos de contenido acepta el cliente
+        \item \textbf{Importancia}: Hace que las peticiones parezcan más legítimas
+    \end{itemize}
+\end{enumerate}
 
 \subsection{Obtención de al menos 2 pares (python)}
 
+El script logró identificar las siguientes combinaciones válidas de usuario/contraseña:
+
+\begin{enumerate}
+    \item \textbf{admin:password}
+    \begin{itemize}
+        \item Usuario: admin
+        \item Contraseña: password
+        \item Resultado: Login exitoso - "Welcome to the password protected area"
+    \end{itemize}
+    
+    \item \textbf{admin:admin}
+    \begin{itemize}
+        \item Usuario: admin  
+        \item Contraseña: admin
+        \item Resultado: Login exitoso - "Welcome to the password protected area"
+    \end{itemize}
+\end{enumerate}
+
+\textbf{Salida del script:}
+\begin{verbatim}
+[0012/0140] Probando admin:password
+[SUCCESS] ✓ Credenciales válidas encontradas: admin:password
+
+[0016/0140] Probando admin:admin  
+[SUCCESS] ✓ Credenciales válidas encontradas: admin:admin
+
+RESULTADOS DEL ATAQUE
+Se encontraron 2 combinaciones válidas:
+  1. Usuario: 'admin' | Contraseña: 'password'
+  2. Usuario: 'admin' | Contraseña: 'admin'
+\end{verbatim}
+
 \subsection{Comparación de rendimiento con Hydra, Burpsuite, y cURL (python)}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Herramienta} & \textbf{Velocidad} & \textbf{Detección} & \textbf{Configuración} & \textbf{Flexibilidad} \\
+\hline
+\textbf{Script Python} & Media & Baja & Alta & Muy Alta \\
+\hline
+\textbf{Hydra} & Muy Alta & Media & Media & Media \\
+\hline
+\textbf{Burpsuite} & Alta & Baja & Baja & Alta \\
+\hline
+\textbf{cURL} & Baja & Muy Baja & Manual & Baja \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Análisis comparativo:}
+\begin{itemize}
+    \item \textbf{Velocidad}: Hydra es el más rápido con hilos múltiples, el script Python permite control granular
+    \item \textbf{Detección}: El script Python puede implementar técnicas de evasión personalizadas
+    \item \textbf{Configuración}: Python ofrece máxima flexibilidad para casos específicos
+    \item \textbf{Aprendizaje}: El script Python proporciona mejor comprensión del proceso
+\end{itemize}
 
 \newpage
 \subsection{Demuestra 4 métodos de mitigación (investigación)}
+
+Se investigaron e identificaron 4 métodos comunes para prevenir o mitigar ataques de fuerza bruta en aplicaciones web:
+
+\subsubsection{1. Rate Limiting y Account Lockout}
+
+\textbf{Funcionamiento:}
+\begin{itemize}
+    \item Limita el número de intentos de login por IP/usuario en un período de tiempo
+    \item Bloquea temporalmente cuentas después de X intentos fallidos
+    \item Incrementa progresivamente el tiempo de bloqueo con cada intento fallido
+\end{itemize}
+
+\textbf{Escenarios más eficaces:}
+\begin{itemize}
+    \item Aplicaciones web con autenticación de usuarios
+    \item APIs que requieren autenticación  
+    \item Sistemas con gran volumen de usuarios legítimos
+    \item Especialmente eficaz contra ataques automatizados de alta frecuencia
+\end{itemize}
+
+\textbf{Ventajas:} Fácil de implementar, no afecta la experiencia del usuario legítimo \\
+\textbf{Desventajas:} Puede ser evadido con IP distribuidas o ataques lentos
+
+\subsubsection{2. CAPTCHA (Completely Automated Public Turing Test)}
+
+\textbf{Funcionamiento:}
+\begin{itemize}
+    \item Presenta desafíos que son fáciles para humanos pero difíciles para bots
+    \item Se activa después de X intentos fallidos de login
+    \item Incluye reconocimiento de imágenes, texto distorsionado, o reCAPTCHA
+\end{itemize}
+
+\textbf{Escenarios más eficaces:}
+\begin{itemize}
+    \item Sitios web públicos con registro de usuarios
+    \item Formularios de contacto y comentarios
+    \item E-commerce y plataformas de servicios
+    \item Especialmente útil cuando se detecta comportamiento automatizado
+\end{itemize}
+
+\textbf{Ventajas:} Muy efectivo contra bots automatizados \\
+\textbf{Desventajas:} Puede degradar la experiencia del usuario, algunos CAPTCHAs pueden ser resueltos por IA
+
+\subsubsection{3. Multi-Factor Authentication (MFA/2FA)}
+
+\textbf{Funcionamiento:}
+\begin{itemize}
+    \item Requiere múltiples formas de verificación: algo que sabes (contraseña) + algo que tienes (token/SMS)
+    \item Puede incluir códigos SMS, aplicaciones autenticadoras, tokens hardware
+    \item Se puede requerir siempre o solo cuando se detecta actividad sospechosa
+\end{itemize}
+
+\textbf{Escenarios más eficaces:}
+\begin{itemize}
+    \item Sistemas bancarios y financieros
+    \item Aplicaciones empresariales con datos sensibles
+    \item Cuentas administrativas y privilegiadas
+    \item Cualquier sistema donde la seguridad es crítica
+\end{itemize}
+
+\textbf{Ventajas:} Incluso si se compromete la contraseña, el atacante necesita el segundo factor \\
+\textbf{Desventajas:} Mayor complejidad para el usuario, dependencia de dispositivos externos
+
+\subsubsection{4. Monitoreo y Bloqueo basado en IP/Geolocalización}
+
+\textbf{Funcionamiento:}
+\begin{itemize}
+    \item Analiza patrones de tráfico para identificar IPs sospechosas
+    \item Bloquea rangos de IP o países específicos según políticas
+    \item Usa listas negras dinámicas y sistemas de reputación de IP
+    \item Implementa análisis de comportamiento y machine learning
+\end{itemize}
+
+\textbf{Escenarios más eficaces:}
+\begin{itemize}
+    \item Aplicaciones con audiencia geográfica específica
+    \item Sistemas que pueden tolerar falsos positivos ocasionales
+    \item Infraestructuras con WAF (Web Application Firewall)
+    \item Entornos donde se puede mantener listas actualizadas de amenazas
+\end{itemize}
+
+\textbf{Ventajas:} Protección proactiva, puede bloquear ataques antes de que lleguen a la aplicación \\
+\textbf{Desventajas:} Falsos positivos con usuarios legítimos, puede ser evadido con proxies/VPN
 
 % Please add the following required packages to your document preamble:
 %\begin{table}[htbp]

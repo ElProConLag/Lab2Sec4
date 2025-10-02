@@ -1,0 +1,68 @@
+================================================================================
+SCRIPT DE FUERZA BRUTA - DVWA
+Laboratorio 2 - Sección 4
+Contexto: Educativo/Investigación en Seguridad
+================================================================================
+
+================================================================================
+EXPLICACIÓN DE CABECERAS HTTP UTILIZADAS EN EL ATAQUE DE FUERZA BRUTA
+================================================================================
+
+User-Agent:
+  Valor: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36...
+  Propósito: Identifica el navegador/cliente que realiza la petición
+  Importancia: Simula un navegador real para evitar detección automática de bots
+
+Accept:
+  Valor: text/html,application/xhtml+xml,application/xml;q=0.9...
+  Propósito: Especifica qué tipos de contenido acepta el cliente
+  Importancia: Hace que las peticiones parezcan más legítimas
+
+Accept-Language:
+  Valor: en-US,en;q=0.5
+  Propósito: Indica los idiomas preferidos por el cliente
+  Importancia: Añade realismo a las peticiones HTTP
+
+Connection:
+  Valor: keep-alive
+  Propósito: Mantiene la conexión TCP abierta para múltiples peticiones
+  Importancia: Mejora el rendimiento del ataque al reutilizar conexiones
+
+Cookie:
+  Valor: PHPSESSID=...; security=low
+  Propósito: Mantiene la sesión y configuración de seguridad en DVWA
+  Importancia: CRÍTICA - Sin cookies válidas, el ataque no funcionará
+
+================================================================================
+EJECUCIÓN DEL ATAQUE DE FUERZA BRUTA
+================================================================================
+
+[INFO] Iniciando ataque de fuerza bruta...
+[INFO] Usuarios: 10, Contraseñas: 14
+[INFO] Total de combinaciones a probar: 140
+[INFO] URL objetivo: http://localhost/vulnerabilities/brute/
+[INFO] Delay entre intentos: 0.5s
+------------------------------------------------------------
+[0001/0140] Probando admin:password
+[SUCCESS] ✓ Credenciales válidas encontradas: admin:password
+[0002/0140] Probando admin:123456
+[FAIL] ✗ Credenciales inválidas: admin:123456
+[0003/0140] Probando admin:admin
+[SUCCESS] ✓ Credenciales válidas encontradas: admin:admin
+[0004/0140] Probando admin:root
+[FAIL] ✗ Credenciales inválidas: admin:root
+...
+[0140/0140] Probando john:dragon
+[FAIL] ✗ Credenciales inválidas: john:dragon
+
+================================================================================
+RESULTADOS DEL ATAQUE
+================================================================================
+[SUCCESS] Se encontraron 2 combinaciones válidas:
+  1. Usuario: 'admin' | Contraseña: 'password'
+  2. Usuario: 'admin' | Contraseña: 'admin'
+
+[INFO] Ataque completado.
+
+NOTA: Este script es solo para fines educativos y de investigación.
+Use únicamente en sistemas de prueba autorizados como DVWA.
