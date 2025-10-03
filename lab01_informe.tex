@@ -233,7 +233,7 @@ En el laboratorio se emplearon diccionarios reducidos construidos a partir de fu
 
 
 \subsection{Obtención de al menos 2 pares (burp)}
-La ejecución del ataque \emph{Cluster bomb} en Intruder produjo combinaciones cruzadas usuario/contraseña de las listas ligeras cargadas. En la Figura~\ref{fig:ventanaintruderdoble} se aprecian solicitudes con código 200 y longitudes de respuesta diferenciadas: las entradas donde el par coincide (\texttt{admin:password} y \texttt{gordonb:abc123}) muestran un tamaño ligeramente mayor y, al inspeccionar el cuerpo HTML (panel inferior), aparece el mensaje ``Welcome to the password protected area'' seguido de la imagen de perfil \texttt{/hackable/users/<usuario>.jpg}. Estas evidencias permiten confirmar de forma inequívoca dos credenciales válidas para DVWA en nivel de seguridad bajo.
+La ejecución del ataque \emph{Cluster bomb} en Intruder produjo combinaciones cruzadas usuario/contraseña de las listas ligeras cargadas. En la Figura~\ref{fig:ventanaintruderdoble} se aprecian solicitudes con código 200 y longitudes de respuesta diferenciadas:\\ las entradas donde el par coincide (\texttt{admin:password} y \texttt{gordonb:abc123}) muestran un tamaño ligeramente mayor y, al inspeccionar el cuerpo HTML (panel inferior), aparece el mensaje ``Welcome to the password protected area'' \\ seguido de la imagen de perfil \texttt{/hackable/users/<usuario>.jpg}. Estas evidencias permiten confirmar de forma inequívoca dos credenciales válidas para DVWA en nivel de seguridad bajo.
 \begin{figure}
     \centering
     \includegraphics[width=1\linewidth]{Captura desde 2025-10-03 01-09-41.png}
@@ -249,7 +249,7 @@ Los elementos relevantes observados fueron:
 \begin{itemize}
         \item \textbf{Método y semántica}: El formulario opera mediante \texttt{GET}; los campos \texttt{username}, \texttt{password} y el disparador \texttt{Login=Login} quedan expuestos en la query string, lo que facilita su reproducción exacta.
     \item \textbf{Encabezados mínimos}: \texttt{Host}, \texttt{User-Agent}, \texttt{Referer}, \texttt{Accept}, \\
-    	exttt{Connection: keep-alive}, \texttt{Upgrade-Insecure-Requests} y el conjunto de \texttt{Sec-Fetch-*}. \\
+    	exttt{Connection: keep-alive}, \\ \texttt{Upgrade-Insecure-Requests} y el conjunto de \texttt{Sec-Fetch-*}. \\
     Para DVWA en \texttt{low}, sólo \texttt{Host} y las cookies son estrictamente necesarios.
         \item \textbf{Cookies de estado}: Dos valores resultan críticos: \texttt{PHPSESSID} (identificador de sesión) y \texttt{security=low}. Su ausencia provoca redirección o cambio de superficie de ataque. Se obtuvieron desde la subpestaña \emph{Cookies} asociada a la misma entrada de red.
     \item \textbf{Indicador de éxito}: El HTML exitoso contiene la cadena ``Welcome to the password protected area'' \\
@@ -528,16 +528,12 @@ $ sudo docker run --rm vanhauser/hydra hydra -v
 Hydra v9.6dev (c) 2023 by van Hauser/THC & David Maciejak
 ...
 \end{verbatim}
-lo que confirma que todas las pruebas se realizaron sobre la compilación 9.6dev incluida en la imagen oficial.
-
-
-
 
 \subsection{Explicación de comando a utilizar (hydra)}
 
 Para realizar el ataque se ejecutó la imagen oficial de Hydra en Docker y se configuraron los parámetros clave del módulo `http-get-form`:
 \begin{itemize}
-        \item \verb|--network="host"|: expone la red del contenedor para alcanzar el DVWA publicado en el puerto 8889 del host.
+        \item \verb|--network="host"|: expone la red del contenedor para alcanzar el DVWA publicado en el puerto 8889.
         \item \verb|-v "$(pwd)":/data|: monta el directorio actual dentro del contenedor para compartir diccionarios y registrar el resultado en \verb|/data|.
         \item \verb|-L| y \verb|-P|: apuntan a los diccionarios ligeros de usuarios y contraseñas preparados previamente.
         \item \verb|-s 8889 localhost http-get-form|: especifica el puerto, host y módulo de Hydra que automatiza envíos GET sobre el formulario objetivo.
@@ -548,7 +544,7 @@ Para realizar el ataque se ejecutó la imagen oficial de Hydra en Docker y se co
         \item \verb|-o /data/hydra_light.txt|: guarda el log con las combinaciones válidas encontradas.
 \end{itemize}
 
-    \textbf{Comando ejecutado}
+
 \begin{verbatim}
 $ sudo docker run --rm --network="host" -v "$(pwd)":/data vanhauser/hydra \
     -L /data/usuarios_light.txt -P /data/contrasenas_light.txt -s 8889 \
@@ -557,14 +553,14 @@ $ sudo docker run --rm --network="host" -v "$(pwd)":/data vanhauser/hydra \
     -o /data/hydra_light.txt
 \end{verbatim}
 
-	\textbf{Resultado relevante}
+
+\subsection{Obtención de al menos 2 pares (hydra)}
+
 \begin{verbatim}
 [8889][http-get-form] ... login: admin   password: password
 [8889][http-get-form] ... login: gordonb password: abc123
 1 of 1 target successfully completed, 2 valid passwords found
 \end{verbatim}
-
-\subsection{Obtención de al menos 2 pares (hydra)}
 
 Los pares válidos obtenidos fueron:
 \begin{itemize}
@@ -574,23 +570,44 @@ Los pares válidos obtenidos fueron:
 
 
 \subsection{Explicación paquete curl (tráfico)}
+Este registro ejemplifica una ejecución aislada con \texttt{cURL}. Rasgos distintivos: \textbf{User-Agent}\ =\ \texttt{curl/8.5.0}, ausencia de \texttt{Referer} (marcada como \texttt{"-"}), método \texttt{GET} con todos los parámetros en la query string y protocolo \texttt{HTTP/1.1}. La herramienta sólo envía las cabeceras mínimas que se le especifiquen explícitamente, lo que produce un perfil muy reducido y fácil de reconocer en los logs. El tamaño de respuesta (4703 bytes) sirve como referencia para comparar con otros intentos.
 \begin{verbatim}
-    curl "http://localhost:8889/vulnerabilities/brute/?username=njnkyuuykmn&password=jnjrjrnfjer&Login=Login" \
--b "PHPSESSID=knd082p12k28do4ttsn47hfd35; security=low"
+172.17.0.1 - - [03/Oct/2025:06:40:23 +0000] "GET /vulnerabilities/brute/?username=njnkyuuykmn&password=jnjrjrnfjer&Login=Login HTTP/1.1" 200 4703 "-" "curl/8.5.0"
 \end{verbatim}
 \subsection{Explicación paquete burp (tráfico)}
+El paquete capturado a través de Burp refleja una solicitud generada por el navegador (Firefox) pasando por el proxy: \textbf{User-Agent} completo de Firefox, presencia de \texttt{Referer} apuntando a una URL previa similar (lo que denota navegación encadenada), protocolo \texttt{HTTP/1.1} y una longitud de respuesta distinta (1827 bytes en el ejemplo). Aunque el log combinado no muestra todos los encabezados avanzados (\texttt{Accept-Language}, \texttt{Accept-Encoding}, etc.), éstos se observan en la captura detallada y forman parte de la firma típica de un navegador real.
 \begin{verbatim}
-    172.17.0.1 - - [03/Oct/2025:02:29:15 +0000] "GET /vulnerabilities/brute/?username=gordonb&password=abc123&Login=Login HTTP/1.1" 200 1827 "http://localhost:8889/vulnerabilities/brute/?username=admin&password=jessica&Login=Login" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"
+172.17.0.1 - - [03/Oct/2025:02:29:15 +0000] "GET /vulnerabilities/brute/?username=gordonb&password=abc123&Login=Login HTTP/1.1" 200 1827 "http://localhost:8889/vulnerabilities/brute/?username=admin&password=jessica&Login=Login" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"
 \end{verbatim}
 \subsection{Explicación paquete hydra (tráfico)}
+Hydra emite peticiones en ráfagas rápidas. Sus características clave visibles en el log: uso de \textbf{HTTP/1.0}, \textbf{User-Agent} corto \texttt{Mozilla/5.0 (Hydra)}, ausencia de \texttt{Referer} y patrón repetitivo (primero la ruta base, luego variantes con credenciales). Las longitudes 4651 (página base) y ~4700 (intentos con parámetros) se repiten estableciendo una huella fácil de agrupar estadísticamente. Este perfil (HTTP/1.0 + UA Hydra + alta densidad temporal) contrasta con la cadencia humana o manual de cURL.
 \begin{Verbatim}[breaklines=true,breakanywhere=true]
 172.17.0.1 - - [03/Oct/2025:02:24:33 +0000] "GET /vulnerabilities/brute/ HTTP/1.0" 200 4651 "-" "Mozilla/5.0 (Hydra)"
 172.17.0.1 - - [03/Oct/2025:02:24:33 +0000] "GET /vulnerabilities/brute/?username=admin&password=abc123&Login=Login HTTP/1.0" 200 4703 "-" "Mozilla/5.0 (Hydra)"
 \end{Verbatim}
 
 \subsection{Mención de las diferencias (tráfico)}
+Comparando los tres tipos de tráfico desde los registros del servidor:
+\begin{itemize}
+    \item \textbf{User-Agent}: \texttt{curl/x.y.z} (cURL) vs. cadena completa de Firefox (Burp/navegador) vs. \texttt{Mozilla/5.0 (Hydra)} (Hydra).
+    \item \textbf{Protocolo}: cURL y Burp usan \texttt{HTTP/1.1}; Hydra predomina con \texttt{HTTP/1.0} en este escenario.
+    \item \textbf{Referer}: Presente en Burp (por navegación real), ausente en cURL (invocación directa) y en Hydra (ataque automatizado).
+    \item \textbf{Tasa / patrón temporal}: cURL = aislado; Burp = intervalos irregulares (uso humano); Hydra = ráfaga muy densa y sistemática.
+    \item \textbf{Longitud de respuesta}: Hydra muestra dos clústeres (base vs intentos); cURL y Burp tienen tamaños distintos que ayudan a separar casos de éxito/fracaso; combinando con frecuencia fortalece la clasificación.
+    \item \textbf{Conjunto de cabeceras}: Burp (navegador) incluye cabeceras ricas (idioma, compresión); Hydra y cURL típicamente envían un subconjunto reducido salvo configuración manual.
+\end{itemize}
+Resumen: Hydra = (HTTP/1.0 + sin Referer + ráfaga + UA propio), Burp = (Firefox completo + Referer + ritmo humano), cURL = (UA minimalista + sin Referer + petición puntual).
 
 \subsection{Detección de SW (tráfico)}
+Heurísticas prácticas para atribución automática en el servidor o un pipeline de análisis:
+\begin{enumerate}
+    \item \textbf{Firmas de User-Agent}: Regex simples (\texttt{/curl\\\/\\d/}, \texttt{/Hydra/}, \texttt{/Firefox\\\/[0-9]+\\./}) clasifican la mayoría de casos.
+    \item \textbf{Versión HTTP}: Secuencias numerosas con \texttt{HTTP/1.0} + misma IP + UA Hydra refuerzan la etiqueta de ataque automatizado.
+    \item \textbf{Referer + frecuencia}: Ausencia persistente de \texttt{Referer} y alta densidad temporal (intervalos sub‑segundo) sugiere Hydra; único request aislado sin Referer apunta a cURL; presencia de Referer coherente indica navegador/Burp.
+    \item \textbf{Agrupamiento por longitud}: K-means o reglas simples sobre tamaño de respuesta separan rutas base de intentos y ayudan a detectar barridos (Hydra) frente a exploración manual.
+    \item \textbf{Cabeceras enriquecidas}: Presencia conjunta de \\ \texttt{Accept-Language}, \texttt{Accept-Encoding}, \texttt{Upgrade-Insecure-Requests} eleva probabilidad de navegador real (Burp).
+\end{enumerate}
+Resistencia a evasión: aunque un atacante puede falsificar el \texttt{User-Agent}, replicar simultáneamente la cadencia humana, la mezcla de encabezados y la distribución de longitudes es más costoso. Combinar estos factores reduce falsos positivos, ya que un atacante podría cambiar el User-Agent a uno de Firefox, pero mantener intervalos sub-segundo y HTTP/1.0 sería sospechoso. Además, la presencia de múltiples cabeceras avanzadas como Sec-Fetch-* dificulta la evasión completa sin un navegador real. Por ejemplo, un script que imita Burp podría incluir cabeceras como \texttt{Sec-Fetch-Dest: document} y \texttt{Sec-Fetch-Mode: navigate}, pero omitir \texttt{Sec-Fetch-Site} o usar valores inconsistentes revelaría la automatización. En resumen, mientras que un atacante puede evadir una heurística individual, combinar múltiples indicadores crea una barrera robusta contra la evasión sofisticada. Esta aproximación heurística es efectiva en la práctica porque los ataques automatizados rara vez invierten el esfuerzo necesario para replicar completamente el comportamiento de un navegador legítimo, especialmente cuando se combina con análisis de frecuencia y patrones temporales.
 
 \subsection{Interacción con el formulario (python)}
 
@@ -661,18 +678,6 @@ RESULTADOS DEL ATAQUE
 
 \subsection{Comparación de rendimiento con Hydra, Burpsuite, y cURL (python)}
 
-\begin{center}
-\begin{tabular}{|l|l|l|l|l|}
-\hline
-Herramienta & Velocidad & Detección (Sigilo) & Configuración & Flexibilidad \\
-\hline
-Script Python & Media & Muy Alta & Alta & Muy Alta \\
-Hydra & Muy Alta & Baja & Media & Media \\
-Burp Suite & Alta & Alta & Baja & Alta \\
-cURL (en script) & Baja & Muy Alta & Manual & Baja \\
-\hline
-\end{tabular}
-\end{center}
 
 \begin{itemize}
     \item \textbf{Velocidad:} Hydra destaca gracias a su motor multihilo en C. Burp Suite también es ágil y el script en Python resulta más lento por el intérprete, aunque puede acelerarse con librerías asíncronas.
@@ -682,125 +687,35 @@ cURL (en script) & Baja & Muy Alta & Manual & Baja \\
 
 \newpage
 \subsection{Demuestra 4 métodos de mitigación (investigación)}
+\noindent A continuación se sintetizan cuatro mecanismos comunes de mitigación para ataques de fuerza bruta. Para cada uno se resume: funcionamiento, escenario óptimo y pros/contras clave.
+\begin{enumerate}
+  \item \textbf{Rate limiting, bloqueo y backoff}. Limita intentos por IP/usuario en ventana temporal y aplica bloqueo temporal creciente tras umbrales (backoff exponencial). \emph{Escenario}: cualquier sistema autenticado expuesto públicamente. \emph{Ventajas}: simple, poco invasivo para usuarios legítimos. \emph{Desventajas}: evasión vía botnets o ataques "low \\
+  and slow" distribuidos.
+  \item \textbf{CAPTCHA adaptativo}. Introduce un desafío sólo tras varios fallos o comportamiento anómalo (formularios de registro/login públicos). \emph{Ventajas}: frena bots básicos/intermedios. \emph{Desventajas}: fricción accesibilidad; servicios de resolución humana y modelos de IA reducen eficacia; debe activarse de forma adaptativa para no degradar UX.
+  \item \textbf{Autenticación multifactor (MFA)}. Requiere (algo que sabes + tienes + eres). \emph{Escenario}: cuentas sensibles (admins, banca, correo). \emph{Ventajas}: inutiliza credenciales aisladas filtradas. \emph{Desventajas}: costo operativo, dependencia de dispositivo y posible fatiga por prompts.
+  \item \textbf{Monitoreo y bloqueo contextual (IP / geolocalización / reputación / comportamiento)}. Analiza patrones (frecuencia, dispersión geográfica, reputación IP, imposibilidad geográfica). \emph{Escenario}: plataformas con base de usuarios definida geográficamente o con capacidad de telemetría avanzada. \emph{Ventajas}: detecta ataques distribuidos y anómalos temprano. \emph{Desventajas}: riesgo de falsos positivos (viajes, VPN), mantenimiento continuo de listas y modelos.
+\end{enumerate}
 
-
-1. Rate Limiting (Limitación de Tasa) y Bloqueo de Cuentas
-
-Este es uno de los métodos de defensa más fundamentales y directos. Su objetivo es ralentizar a los atacantes hasta el punto en que un ataque de fuerza bruta se vuelva impráctico.
-
-    Funcionamiento:
-
-        Limitación de Tasa: El sistema impone un límite estricto en la cantidad de intentos de inicio de sesión permitidos desde una misma dirección IP o para un nombre de usuario específico dentro de un período de tiempo determinado (por ejemplo, no más de 5 intentos por minuto).
-
-        Bloqueo de Cuentas: Si se supera el umbral de intentos fallidos, la cuenta de usuario se bloquea temporalmente.
-
-        Retraso Progresivo (Exponential Backoff): Una estrategia avanzada es aumentar el tiempo de bloqueo con cada serie de intentos fallidos. Por ejemplo, el primer bloqueo puede ser de 1 minuto, el segundo de 5, el tercero de 30, y así sucesivamente.
-
-    Escenarios más eficaces:
-
-        Es ideal para cualquier sistema con autenticación de usuarios, desde redes sociales hasta aplicaciones empresariales y APIs.
-
-        Resulta especialmente efectivo para detener ataques automatizados de "fuerza bruta tonta", que intentan miles de combinaciones rápidamente desde una única fuente.
-
-    Ventajas y Desventajas:
-
-        Ventajas: Es relativamente fácil de implementar y, si se calibra bien, es transparente para los usuarios legítimos, quienes raramente fallan su contraseña tantas veces seguidas.
-
-        Desventajas: Los atacantes sofisticados pueden evadirlo utilizando una red distribuida de IPs (botnet) para que cada IP realice pocos intentos, o llevando a cabo ataques de "baja y lenta" (low and slow), donde los intentos se espacian en el tiempo para no activar los umbrales.
-
-2. CAPTCHA (Prueba de Turing Pública y Automática para Diferenciar a Computadoras de Humanos)
-
-El objetivo del CAPTCHA es introducir un paso en el proceso de inicio de sesión que sea trivial para un ser humano, pero muy difícil de resolver para un script automatizado.
-
-    Funcionamiento:
-
-        Después de uno o varios intentos de inicio de sesión fallidos, el formulario presenta al usuario un desafío.
-
-        Estos desafíos pueden variar desde identificar letras y números distorsionados, seleccionar todas las imágenes que contengan un objeto específico (como semáforos o bicicletas), hasta sistemas más modernos como reCAPTCHA de Google que analizan el comportamiento del usuario (movimiento del ratón, historial de navegación) para determinar si es un humano.
-
-    Escenarios más eficaces:
-
-        Es muy común en formularios de registro públicos, secciones de comentarios y procesos de pago para prevenir la creación de cuentas falsas y el spam.
-
-        Es una excelente segunda línea de defensa cuando se detecta un comportamiento que parece automatizado.
-
-    Ventajas y Desventajas:
-
-        Ventajas: Es altamente efectivo para detener la gran mayoría de los bots de fuerza bruta simples y de nivel intermedio.
-
-        Desventajas: Puede afectar negativamente la experiencia del usuario, siendo a menudo frustrante o incluso inaccesible para personas con discapacidades visuales. Además, los avances en IA y los "servicios de resolución de CAPTCHAs" (donde humanos resuelven CAPTCHAs a bajo costo para los atacantes) han reducido su efectividad.
-
-3. Autenticación Multifactor (MFA / 2FA)
-
-MFA es una de las defensas más robustas porque vuelve obsoleta la contraseña como único punto de fallo.
-
-    Funcionamiento:
-
-        El sistema requiere que el usuario proporcione dos o más pruebas (o "factores") para verificar su identidad. Estos factores se suelen clasificar en:
-
-            Algo que sabes: La contraseña o un PIN.
-
-            Algo que tienes: Un código de un solo uso generado por una aplicación en tu teléfono (ej. Google Authenticator), un token de hardware (YubiKey) o un SMS.
-
-            Algo que eres: Un dato biométrico como tu huella digital o reconocimiento facial.
-
-    Escenarios más eficaces:
-
-        Es indispensable para sistemas que manejan información crítica o sensible, como aplicaciones bancarias, proveedores de correo electrónico y cuentas con privilegios de administrador.
-
-        Cualquier servicio donde el compromiso de una cuenta tendría consecuencias graves.
-
-    Ventajas y Desventajas:
-
-        Ventajas: Ofrece una capa de seguridad excepcionalmente alta. Incluso si un atacante logra robar una base de datos completa de contraseñas, no podrá acceder a las cuentas sin el segundo factor físico.
-
-        Desventajas: Introduce un paso adicional en el inicio de sesión, lo que puede ser visto como una inconveniencia por los usuarios. También crea una dependencia de un dispositivo secundario, que puede perderse, ser robado o quedarse sin batería.
-
-4. Monitoreo y Bloqueo Basado en IP/Geolocalización
-
-Esta es una estrategia proactiva que busca identificar y neutralizar a los atacantes antes de que puedan realizar muchos intentos, basándose en el análisis de metadatos y patrones de comportamiento.
-
-    Funcionamiento:
-
-        Análisis de Tráfico: Se utilizan herramientas como Firewalls de Aplicaciones Web (WAF) o sistemas de detección de intrusiones (IDS) para analizar patrones en tiempo real.
-
-        Listas Negras y Reputación: El sistema puede bloquear automáticamente direcciones IP que son conocidas por actividades maliciosas (proxies anónimos, nodos de salida de Tor, IPs en listas de spam).
-
-        Geolocalización: Si una aplicación sirve principalmente a un país o región, se pueden bloquear los intentos de inicio de sesión provenientes de ubicaciones geográficas donde no se espera tener usuarios legítimos.
-
-        Análisis de Comportamiento: Los sistemas más avanzados utilizan machine learning para crear una línea base del comportamiento "normal" y detectar anomalías, como un usuario que intenta iniciar sesión desde dos continentes diferentes en un lapso de 5 minutos.
-
-    Escenarios más eficaces:
-
-        Ideal para aplicaciones con una base de usuarios geográficamente concentrada.
-
-        Infraestructuras que ya cuentan con un WAF, ya que muchas de estas funcionalidades vienen incorporadas.
-
-    Ventajas y Desventajas:
-
-        Ventajas: Puede detener ataques distribuidos y de "baja y lenta" que otras defensas podrían pasar por alto. Ofrece una protección proactiva a nivel de red, antes de que el ataque llegue a la lógica de la aplicación.
-
-        Desventajas: Es propenso a "falsos positivos", donde se podría bloquear a un usuario legítimo que viaja o utiliza una VPN por razones de privacidad. Mantener las listas de reputación de IP actualizadas requiere un esfuerzo constante.
 % Please add the following required packages to your document preamble:
 %\begin{table}[htbp]
 
 \section*{Conclusiones y comentarios}
 El laboratorio permitió contrastar distintas aproximaciones a un ataque de fuerza bruta sobre DVWA (nivel \texttt{low}) y extraer lecciones sobre eficacia técnica, huella de red y mitigación.
 
-	extbf{1. Herramientas y resultados.} Burp Suite Intruder facilitó la exploración inicial: identificación de parámetros, manipulación del espacio de búsqueda y observación de indicadores de éxito (mensaje y carga de imagen). Hydra demostró la mayor velocidad bruta gracias a su implementación optimizada y a la paralelización implícita, mientras que el script en Python ofreció el mayor control fino (pausas, encabezados, lógica de detección) a costa de menor rendimiento. El uso directo de cURL resultó útil para validar manualmente casos límite y construir una versión mínima reproducible de la solicitud.
+    	\textbf{1. Herramientas y resultados.} Burp Suite Intruder facilitó la exploración inicial (identificación de parámetros, manipulación del espacio de búsqueda e indicadores de éxito). Hydra mostró la mayor velocidad bruta (implementación optimizada y paralelización implícita). El script en Python brindó máximo control (pausas, encabezados, detección) a costa de menor rendimiento. cURL sirvió para validar casos límite y construir la solicitud mínima reproducible.
 
-	extbf{2. Indicadores de éxito y diferenciación de respuestas.} El patrón dual (mensaje “Welcome to the password protected area” + imagen \texttt{/hackable/users/<usuario>.jpg}) se confirmó como señal inequívoca de autenticación válida. Las páginas fallidas mostraron el bloque \texttt{<pre>} de error y ausencia de la imagen, permitiendo reglas simples tanto en Hydra (parámetro \texttt{S=}) como en el script (búsqueda de cadena) sin requerir análisis estructural avanzado del DOM.
+    	\textbf{2. Indicadores de éxito.} El patrón dual (mensaje “Welcome to the password protected area” + imagen \texttt{/hackable/users/<usuario>.jpg}) se consolidó como señal inequívoca de autenticación válida. Los fallos exhiben bloque \texttt{<pre>} de error y ausencia de imagen, habilitando reglas simples (Hydra: \texttt{S=}, script: búsqueda de cadena) sin parseo avanzado del DOM.
 
-	extbf{3. Comparación de tráfico.} Los paquetes generados por las tres herramientas retienen la semántica GET con parámetros visibles. Sin embargo, Hydra utiliza por defecto HTTP/1.0 y un \texttt{User-Agent} breve (“Mozilla/5.0 (Hydra)”), mientras Burp y el script (configurado) presentan encabezados más completos y persistencia (\texttt{keep-alive}). Estas diferencias pueden emplearse para detección heurística temprana. cURL, en uso manual, expone aún menos encabezados si no se añaden explícitamente.
+    	\textbf{3. Comparación de tráfico.} Todas mantienen semántica GET. Hydra: HTTP/1.0 + UA corto; Burp y script: cabeceras completas + \texttt{keep-alive}; cURL manual: encabezados mínimos. Diferencias útiles para heurísticas de detección temprana.
 
-	extbf{4. Riesgos y alcance ético.} La reducción deliberada de diccionarios (subconjuntos de \texttt{rockyou.txt} y usuarios limitados) acota el tiempo de ataque y evita un barrido exhaustivo que podría considerarse abusivo. El experimento se mantuvo en un entorno controlado y local, alineado con buenas prácticas éticas de pruebas de seguridad.
+    	\textbf{4. Riesgos y ética.} Diccionarios reducidos (subconjuntos de \texttt{rockyou.txt}) limitaron superficie temporal y evitaron abuso. Entorno controlado y local alineado con buenas prácticas de prueba ética.
 
-	extbf{5. Mitigaciones observadas/ausentes.} La configuración \texttt{low} de DVWA carece de controles de tasa, bloqueo progresivo, MFA, CAPTCHA o inspección contextual, lo que facilita el hallazgo rápido de credenciales triviales. Las cuatro contramedidas investigadas (limitación de tasa y bloqueo, CAPTCHA adaptativo, MFA y monitoreo basado en reputación/comportamiento) habrían elevado el costo del ataque; especialmente MFA, que neutraliza por completo la utilidad de credenciales filtradas en ausencia del segundo factor.
+    	\textbf{5. Mitigaciones ausentes.} En modo \texttt{low} faltan rate limiting, bloqueo progresivo, MFA, CAPTCHA y análisis contextual. Las contramedidas estudiadas (rate limiting/backoff, CAPTCHA adaptativo, MFA, monitoreo contextual) elevarían el costo; MFA neutraliza credenciales filtradas sin segundo factor.
 
-	extbf{6. Lecciones técnicas.} (i) Una cadena de éxito clara simplifica la automatización; (ii) la elección de herramienta depende del objetivo inmediato (velocidad vs. sigilo vs. extensibilidad); (iii) normalizar encabezados y tiempos introduce “camuflaje” que reduce firmas detectables; (iv) la instrumentación temprana con Burp acelera el desarrollo de scripts personalizados.
+    	\textbf{6. Lecciones técnicas.} (i) Cadena de éxito clara simplifica automatización; (ii) herramienta depende de objetivo (velocidad vs sigilo vs extensibilidad); (iii) normalizar encabezados/temporización añade camuflaje; (iv) instrumentar primero con Burp acelera scripting.
 
-	extbf{7. Limitaciones.} El análisis se restringió a un entorno muy permisivo (sin WAF, sin CAPTCHA y sin rotación de tokens CSRF). Los resultados (tiempos, número de intentos) no extrapolan directamente a aplicaciones endurecidas. No se evaluó el impacto de latencias de red reales ni se probaron diccionarios avanzados
+    	\textbf{7. Limitaciones.} Entorno permisivo: sin WAF, sin CAPTCHA, sin rotación CSRF. Métricas no extrapolables a entornos endurecidos; no se midió latencia real ni diccionarios extensos.
 
-	extbf{Conclusión general.} La combinación de observación manual (Burp), validación mínima (cURL), fuerza bruta de alto rendimiento (Hydra) y automatización controlada (Python) ofrece una panorámica integral del ciclo de explotación. Al mismo tiempo, evidencia que defensas relativamente sencillas (limitación de tasa, MFA, CAPTCHA contextual y monitoreo inteligente) bastan para degradar de forma significativa la viabilidad de este vector en entornos de producción.
+    	\textbf{Conclusión general.} Observación manual (Burp) + validación mínima (cURL) + fuerza bruta rápida (Hydra) + automatización controlada (Python) ofrecen visión integral. Defensas relativamente simples (rate limiting, MFA, CAPTCHA contextual, monitoreo inteligente) degradan significativamente la viabilidad del vector en producción.
 
 \end{document}
