@@ -1,4 +1,4 @@
-\documentclass[letter,12pt]{article}
+\documentclass[letterpaper,12pt]{article}
 \usepackage[paperheight=27.94cm,paperwidth=21.59cm,bindingoffset=0in,left=3cm,right=2.0cm, top=3.5cm,bottom=2.5cm, headheight=200pt, headsep=1.0\baselineskip]{geometry}
 \usepackage{graphicx,lastpage}
 \usepackage{upgreek}
@@ -15,6 +15,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage{float}
 \usepackage{hyperref}
+% Control de posicionamiento de figuras para que no invadan subsecciones siguientes
+\usepackage[section]{placeins} % provee \FloatBarrier
+% Inserta una barrera de flotantes antes de cada nueva subsección para forzar
+% que las figuras previas aparezcan dentro de la subsección donde fueron declaradas.
+\let\origsubsection\subsection
+\renewcommand{\subsection}{\FloatBarrier\origsubsection}
 \usepackage{fancyvrb}
 \usepackage{fvextra}
 \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true}
@@ -80,6 +86,7 @@ Utilizando la aplicación web vulnerable DVWA
 \section{Desarrollo de actividades según criterio de rúbrica}
 
 \subsection{Levantamiento de docker para correr DVWA (dvwa)}
+Se obtiene la imagen oficial de DVWA desde Docker Hub (https://hub.docker.com/r/vulnerables/web-dvwa) y se ejecuta con Docker o Podman.
 \begin{verbatim}
 
 camilo@fedora:/var/www/html/dvwa/config$ sudo podman run --rm -it -p 80:80 vulnerables/web-dvwa
@@ -115,7 +122,7 @@ Writing manifest to image destination
 
 \end{verbatim}
 \subsection{Redirección de puertos en docker (dvwa)}
-
+Para redirigir el tráfico entre un navegador web y la aplicación web DVWA que corre dentro del contenedor Docker, primero se necesita un certificado CA emitido pocosr Burp Suite. Luego, este certificado debe ser importado en el navegador web para que confíe en las conexiones interceptadas por Burp Suite. Finalmente, se configura Burp Suite para que escuche en un puerto específico y se ajusta el navegador para que utilice este puerto como proxy.
 \begin{figure}
     \centering
     \includegraphics[width=1\linewidth]{levanteyredireccione/Captura desde 2025-10-01 22-50-08.png}
@@ -140,6 +147,7 @@ Writing manifest to image destination
     \caption{Ventana que muestra el ajuste de manejo de un 'proxy listener'}
     \label{fig:proxylistener}
 \end{figure}
+La aplicación DVWA se encuentra disponible en \url{http://localhost:8889} y se muestra en la figura \ref{fig:dvwastartscreen}. Por defecto, y durante el desarrollo del laboratorio, se mantuvo el nivel de seguridad en bajo.s
 \begin{figure}
     \centering
     \includegraphics[width=1\linewidth]{levanteyredireccione/Captura desde 2025-10-01 23-14-34.png}
@@ -147,6 +155,13 @@ Writing manifest to image destination
     \label{fig:dvwastartscreen}
 \end{figure}
 \subsection{Obtención de consulta a replicar (burp)}
+Para obtener la consulta HTTP a replicar, se puede colocar utilizar cualquier combinación de usuario y contraseña en el formulario de inicio de sesión, y luego observar la solicitud generada en Burp Suite.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{levanteyredireccione/Captura desde 2025-10-01 23-14-34.png}
+    \caption{Captura de pantalla de sitio DVWA levantado localmente}
+    \label{fig:}
+\end{figure}
 \begin{verbatim}
 
 GET /vulnerabilities/brute/?username=jdsfnjdsbsj&password=jkfdnjfb&Login=Login HTTP/1.1
@@ -207,16 +222,43 @@ Priority: u=0, i
     \label{fig:intrudersuccesfulattack}
 \end{figure}
 \subsection{Obtención de diccionarios para el ataque (burp)}
-\begin{verbatim}
-/vulnerabilities/brute/?username=jdsfnjdsbsj&password=jkfdnjfb&Login=Login
-\end{verbatim}
+En el laboratorio se emplearon diccionarios reducidos construidos a partir de fuentes públicas reconocidas, haciendo énfasis en un uso \textbf{ético} y autorizado. El corpus base de contraseñas se obtuvo del fichero \texttt{rockyou.txt} descargado desde \url{https://weakpass.com/wordlists/rockyou.txt}; de él se extrajo un subconjunto ligero limitado a credenciales de muy alta frecuencia (patrones como \texttt{password}, \texttt{abc123}, \texttt{letmein}, \texttt{123456}) para acelerar las comparaciones entre herramientas. Para nombres de usuario se combinaron entradas mínimas de repositorios como SecLists (usuarios genéricos \texttt{admin}, \texttt{root}, \texttt{test}, etc.) con los identificadores visibles en la propia instancia DVWA (\texttt{admin}, \texttt{gordonb}, \texttt{pablo}, \texttt{smithy}). Tras eliminar duplicados y aplicar filtros de longitud y carácter (alfanumérico 4--12), se generaron las listas finales empleadas por Burp Intruder, Hydra y el script en Python: \texttt{usuarios\_light.txt} y \texttt{contrasenas\_light.txt}. Este enfoque reducido prioriza la demostración metodológica sobre el volumen bruto y disminuye el riesgo operativo.
+
 \subsection{Obtención de al menos 2 pares (burp)}
 
 \subsection{Obtención de código de inspect element (curl)}
-
+Esta subsección documenta la captura y descomposición de la solicitud real que genera Firefox al interactuar con el formulario de fuerza bruta de DVWA. Se trabajó sobre la interfaz \emph{Network} de las Herramientas de Desarrollador de Firefox con la aplicación configurada en nivel de seguridad \texttt{low}. Tras emitir un intento de autenticación (válido o arbitrario), el navegador registra una solicitud principal de tipo \texttt{GET} contra:
+\begin{verbatim}
+/vulnerabilities/brute/?username=<USUARIO>&password=<CLAVE>&Login=Login
+\end{verbatim}
+Los elementos relevantes observados fueron:
+\begin{itemize}
+        \item \textbf{Método y semántica}: El formulario opera mediante \texttt{GET}; los campos \texttt{username}, \texttt{password} y el disparador \texttt{Login=Login} quedan expuestos en la query string, lo que facilita su reproducción exacta.
+        \item \textbf{Encabezados mínimos}: \texttt{Host}, \texttt{User-Agent}, \texttt{Referer}, \texttt{Accept}, \texttt{Connection: keep-alive}, \texttt{Upgrade-Insecure-Requests} y el conjunto de \texttt{Sec-Fetch-*}. Para DVWA en \texttt{low}, únicamente \texttt{Host} y las cookies resultan estrictamente necesarios para replicar el comportamiento funcional.
+        \item \textbf{Cookies de estado}: Dos valores resultan críticos: \texttt{PHPSESSID} (identificador de sesión) y \texttt{security=low}. Su ausencia provoca redirección o cambio de superficie de ataque. Se obtuvieron desde la subpestaña \emph{Cookies} asociada a la misma entrada de red.
+        \item \textbf{Indicador de éxito}: En respuestas posteriores, el HTML incorpora el fragmento literal ``Welcome to the password protected area'' y una referencia a \texttt{/hackable/users/<usuario>.jpg} únicamente cuando las credenciales son válidas; en fallos aparece el mensaje de error en un bloque \texttt{<pre>}. Este patrón textual se reutiliza más adelante para la detección automática en script e Hydra.
+\end{itemize}
+Con la información precedente, la reconstrucción manual de la interacción se reduce a un comando cURL mínimo donde sólo se precisa la URL con sus parámetros y la inyección explícita de cookies:
+\begin{verbatim}
+curl "http://localhost:8889/vulnerabilities/brute/?username=admin&password=password&Login=Login" \
+    -b "PHPSESSID=<valor_sesion>; security=low"
+\end{verbatim}
+La inclusión de cabeceras adicionales (p.ej. \texttt{-H "User-Agent: ..."}) sólo persigue mimetizar el perfil de un navegador completo y no altera el resultado lógico en este escenario de baja seguridad. Las Figuras \ref{fig:inspectelement} y \ref{fig:inspectelementcookie} muestran, respectivamente, la captura de tráfico y el panel de cookies del que se extrajeron los valores incorporados al comando reproducido.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{curl/Captura desde 2025-10-01 23-42-53.png}
+    \caption{Captura de pantalla de navegador web con inspect element abierto}
+    \label{fig:inspectelement}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{curl/Captura desde 2025-10-01 23-43-11.png}
+    \caption{Obtención de ID de sesión PHP desde una cookie en inspect element}
+    \label{fig:inspectelementcookie}
+\end{figure}
 \subsection{Utilización de curl por terminal (curl)}
 
-PAR VÁLIDO ABAJO
+\noindent\textbf{Ejemplo de solicitud y respuesta EXITOSA con cURL.} A continuación se muestra la ejecución de cURL utilizando el par de credenciales válido \texttt{admin:password} y la cookie de sesión previamente obtenida (\texttt{PHPSESSID} y el nivel de seguridad en \texttt{low}). Se incluye la respuesta HTML completa para evidenciar: (1) el mensaje de bienvenida, (2) la aparición del nombre de usuario \texttt{admin} y (3) la carga de la imagen de perfil \texttt{/hackable/users/admin.jpg}, indicadores claros de autenticación correcta.
 \begin{verbatim}
 $ curl "http://localhost:8889/vulnerabilities/brute/?username=admin&password=password&Login=Login" \
 -b "PHPSESSID=knd082p12k28do4ttsn47hfd35; security=low"
@@ -330,7 +372,7 @@ $ curl "http://localhost:8889/vulnerabilities/brute/?username=admin&password=pas
 
 </html>
 \end{verbatim}
-PAR INVALIDO
+\noindent\textbf{Ejemplo de solicitud y respuesta FALLIDA con cURL.} En este caso se envía una combinación aleatoria (usuario y contraseña inexistentes). La respuesta HTML (incluida íntegramente) muestra el mensaje de error \texttt{Username and/or password incorrect.}, no incorpora la imagen de usuario autenticado ni el párrafo de bienvenida, lo que permite contrastar fácilmente los elementos diferenciales frente al caso exitoso anterior.
 \begin{verbatim}
 $ curl "http://localhost:8889/vulnerabilities/brute/?username=njnkyuuykmn&password=jnjrjrnfjer&Login=Login" \
 -b "PHPSESSID=knd082p12k28do4ttsn47hfd35; security=low"
@@ -562,13 +604,13 @@ Al monitorear las peticiones con la herramienta ``Network'' del navegador mientr
 \subsection{Obtención de al menos 2 pares (python)}
 \begin{verbatim}
 camilo@camilo-Aspire-A315-56:/tmp$ python3 brute_force_script.py
-================================================================================
+==========================================================================
 SCRIPT DE FUERZA BRUTA - DVWA
-================================================================================
+==========================================================================
 
-================================================================================
+==========================================================================
 EJECUCIÓN DEL ATAQUE DE FUERZA BRUTA
-================================================================================
+==========================================================================
 => Ingrese la URL base de DVWA (ej. http://localhost:8889): http://localhost:8889
 => Ingrese su cookie PHPSESSID: knd082p12k28do4ttsn47hfd35
 => Ingrese el nivel de seguridad (low/medium/high) [low]: low
@@ -586,9 +628,9 @@ EJECUCIÓN DEL ATAQUE DE FUERZA BRUTA
 [0025/0025] Probando smithy:123456...
 ------------------------------------------------------------
 
-================================================================================
+==========================================================================
 RESULTADOS DEL ATAQUE
-================================================================================
+==========================================================================
 [SUCCESS] Se encontraron 3 combinaciones válidas:
     1. Usuario: 'admin' | Contraseña: 'password'
     2. Usuario: 'pablo' | Contraseña: 'letmein'
@@ -615,7 +657,7 @@ cURL (en script) & Baja & Muy Alta & Manual & Baja \\
 \begin{itemize}
     \item \textbf{Velocidad:} Hydra destaca gracias a su motor multihilo en C. Burp Suite también es ágil y el script en Python resulta más lento por el intérprete, aunque puede acelerarse con librerías asíncronas.
     \item \textbf{Detección (Sigilo):} El script en Python es el más sigiloso al permitir control total sobre delays, proxies y User-Agents rotativos. cURL comparte sigilo a costa de ser manual. Hydra, por su ritmo y patrón de peticiones, es el más detectable por un WAF o IDS.
-    \item \textbf{Flexibilidad:} Python puede manejar lógicas complejas (tokens CSRF variables, desafíos JavaScript o autenticaciones de múltiples pasos). Burp Suite ofrece flexibilidad mediante macros. Hydra está optimizado para formularios de login estándar.
+    \item \textbf{Flexibilidad:} Python puede manejar lógicas complejas (tokens CSRF variables o desafíos JavaScript). Burp Suite ofrece flexibilidad mediante macros. Hydra está optimizado para formularios de login estándar.
 \end{itemize}
 
 \newpage
