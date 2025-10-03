@@ -30,3 +30,8 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+.venv/lib64
+.venv/pyvenv.cfg
+.venv/bin/python3
+.venv/bin/python
+.venv/bin/python3.12

