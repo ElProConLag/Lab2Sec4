@@ -35,7 +35,7 @@
 %
    \title{\Huge{Informe Laboratorio 2}}
 
-   \author{\textbf{Sección x} \\  \\Camilo Rojas \\ e-mail: camilo.pinto1@mail.udp.cl}
+   \author{\textbf{Sección 2} \\  \\Camilo Rojas \\ e-mail: camilo.pinto1@mail.udp.cl}
           
    \date{Octubre de 2025}
 
@@ -86,7 +86,7 @@ Utilizando la aplicación web vulnerable DVWA
 \section{Desarrollo de actividades según criterio de rúbrica}
 
 \subsection{Levantamiento de docker para correr DVWA (dvwa)}
-Se obtiene la imagen oficial de DVWA desde Docker Hub (https://hub.docker.com/r/vulnerables/web-dvwa) y se ejecuta con Docker o Podman.
+Se obtiene la imagen oficial de DVWA desde Docker Hub (\url{https://hub.docker.com/r/vulnerables/web-dvwa}) y se ejecuta con Docker o Podman.
 \begin{verbatim}
 
 camilo@fedora:/var/www/html/dvwa/config$ sudo podman run --rm -it -p 80:80 vulnerables/web-dvwa
@@ -122,7 +122,7 @@ Writing manifest to image destination
 
 \end{verbatim}
 \subsection{Redirección de puertos en docker (dvwa)}
-Para redirigir el tráfico entre un navegador web y la aplicación web DVWA que corre dentro del contenedor Docker, primero se necesita un certificado CA emitido pocosr Burp Suite. Luego, este certificado debe ser importado en el navegador web para que confíe en las conexiones interceptadas por Burp Suite. Finalmente, se configura Burp Suite para que escuche en un puerto específico y se ajusta el navegador para que utilice este puerto como proxy.
+Para redirigir el tráfico entre un navegador web y la aplicación web DVWA que corre dentro del contenedor Docker, primero se necesita un certificado CA emitido por Burp Suite (figura \ref{fig:certificateburp}). Luego, este certificado debe ser importado en el navegador web para que confíe en las conexiones interceptadas por Burp Suite (figura \ref{fig:certificate}). Finalmente, se configura Burp Suite para que escuche en un puerto específico y se ajusta el navegador para que utilice este puerto como proxy (figuras \ref{fig:proxygeneralsetting} y \ref{fig:proxylistener}).
 \begin{figure}
     \centering
     \includegraphics[width=1\linewidth]{levanteyredireccione/Captura desde 2025-10-01 22-50-08.png}
@@ -147,7 +147,7 @@ Para redirigir el tráfico entre un navegador web y la aplicación web DVWA que 
     \caption{Ventana que muestra el ajuste de manejo de un 'proxy listener'}
     \label{fig:proxylistener}
 \end{figure}
-La aplicación DVWA se encuentra disponible en \url{http://localhost:8889} y se muestra en la figura \ref{fig:dvwastartscreen}. Por defecto, y durante el desarrollo del laboratorio, se mantuvo el nivel de seguridad en bajo.s
+La aplicación DVWA se encuentra disponible en \url{http://localhost:8889} y se muestra en la figura \ref{fig:dvwastartscreen}. Por defecto, y durante el desarrollo del laboratorio, se mantuvo el nivel de seguridad en bajo.
 \begin{figure}
     \centering
     \includegraphics[width=1\linewidth]{levanteyredireccione/Captura desde 2025-10-01 23-14-34.png}
@@ -156,12 +156,6 @@ La aplicación DVWA se encuentra disponible en \url{http://localhost:8889} y se 
 \end{figure}
 \subsection{Obtención de consulta a replicar (burp)}
 Para obtener la consulta HTTP a replicar, se puede colocar utilizar cualquier combinación de usuario y contraseña en el formulario de inicio de sesión, y luego observar la solicitud generada en Burp Suite.
-\begin{figure}
-    \centering
-    \includegraphics[width=1\linewidth]{levanteyredireccione/Captura desde 2025-10-01 23-14-34.png}
-    \caption{Captura de pantalla de sitio DVWA levantado localmente}
-    \label{fig:}
-\end{figure}
 \begin{verbatim}
 
 GET /vulnerabilities/brute/?username=jdsfnjdsbsj&password=jkfdnjfb&Login=Login HTTP/1.1
@@ -185,6 +179,7 @@ Priority: u=0, i
 
 \end{verbatim}
 \subsection{Identificación de campos a modificar (burp)}
+La secuencia de capturas ilustra el flujo mínimo para preparar un ataque con Intruder: (i) desde el historial HTTP se envía la petición del formulario a Intruder (Figura~\ref{fig:sendtointuder}); (ii) en la vista principal (Figura~\ref{fig:intruder}) se marcan como posiciones los parámetros \texttt{username} y \texttt{password}; (iii) cada posición recibe una lista corta de candidatos (Figuras~\ref{fig:payload1} y \ref{fig:payload2}); (iv) se configura el tipo de ataque \emph{Cluster bomb} que genera el producto cartesiano de ambas listas (Figura~\ref{fig:ataqueslistasimple}); y (v) al finalizar, una respuesta más larga y con el mensaje de bienvenida confirma credenciales válidas (Figura~\ref{fig:intrudersuccesfulattack}). Esta preparación permite comparar después los mismos diccionarios en cURL, Hydra y el script en Python.
 \begin{figure}
     \centering
     \includegraphics[width=1\linewidth]{identificaryobtenercamposburp/Captura desde 2025-10-01 23-19-38.png}
@@ -225,7 +220,13 @@ Priority: u=0, i
 En el laboratorio se emplearon diccionarios reducidos construidos a partir de fuentes públicas reconocidas, haciendo énfasis en un uso \textbf{ético} y autorizado. El corpus base de contraseñas se obtuvo del fichero \texttt{rockyou.txt} descargado desde \url{https://weakpass.com/wordlists/rockyou.txt}; de él se extrajo un subconjunto ligero limitado a credenciales de muy alta frecuencia (patrones como \texttt{password}, \texttt{abc123}, \texttt{letmein}, \texttt{123456}) para acelerar las comparaciones entre herramientas. Para nombres de usuario se combinaron entradas mínimas de repositorios como SecLists (usuarios genéricos \texttt{admin}, \texttt{root}, \texttt{test}, etc.) con los identificadores visibles en la propia instancia DVWA (\texttt{admin}, \texttt{gordonb}, \texttt{pablo}, \texttt{smithy}). Tras eliminar duplicados y aplicar filtros de longitud y carácter (alfanumérico 4--12), se generaron las listas finales empleadas por Burp Intruder, Hydra y el script en Python: \texttt{usuarios\_light.txt} y \texttt{contrasenas\_light.txt}. Este enfoque reducido prioriza la demostración metodológica sobre el volumen bruto y disminuye el riesgo operativo.
 
 \subsection{Obtención de al menos 2 pares (burp)}
-
+La ejecución del ataque \emph{Cluster bomb} en Intruder produjo combinaciones cruzadas usuario/contraseña de las listas ligeras cargadas. En la Figura~\ref{fig:ventanaintruderdoble} se aprecian solicitudes con código 200 y longitudes de respuesta diferenciadas: las entradas donde el par coincide (\texttt{admin:password} y \texttt{gordonb:abc123}) muestran un tamaño ligeramente mayor y, al inspeccionar el cuerpo HTML (panel inferior), aparece el mensaje ``Welcome to the password protected area'' seguido de la imagen de perfil \texttt{/hackable/users/<usuario>.jpg}. Estas evidencias permiten confirmar de forma inequívoca dos credenciales válidas para DVWA en nivel de seguridad bajo.
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Captura desde 2025-10-03 01-09-41.png}
+    \caption{Respuesta web ante una combinación válida de usuario y contraseña}
+    \label{fig:ventanaintruderdoble}
+\end{figure}
 \subsection{Obtención de código de inspect element (curl)}
 Esta subsección documenta la captura y descomposición de la solicitud real que genera Firefox al interactuar con el formulario de fuerza bruta de DVWA. Se trabajó sobre la interfaz \emph{Network} de las Herramientas de Desarrollador de Firefox con la aplicación configurada en nivel de seguridad \texttt{low}. Tras emitir un intento de autenticación (válido o arbitrario), el navegador registra una solicitud principal de tipo \texttt{GET} contra:
 \begin{verbatim}
@@ -234,9 +235,13 @@ Esta subsección documenta la captura y descomposición de la solicitud real que
 Los elementos relevantes observados fueron:
 \begin{itemize}
         \item \textbf{Método y semántica}: El formulario opera mediante \texttt{GET}; los campos \texttt{username}, \texttt{password} y el disparador \texttt{Login=Login} quedan expuestos en la query string, lo que facilita su reproducción exacta.
-        \item \textbf{Encabezados mínimos}: \texttt{Host}, \texttt{User-Agent}, \texttt{Referer}, \texttt{Accept}, \texttt{Connection: keep-alive}, \texttt{Upgrade-Insecure-Requests} y el conjunto de \texttt{Sec-Fetch-*}. Para DVWA en \texttt{low}, únicamente \texttt{Host} y las cookies resultan estrictamente necesarios para replicar el comportamiento funcional.
+    \item \textbf{Encabezados mínimos}: \texttt{Host}, \texttt{User-Agent}, \texttt{Referer}, \texttt{Accept}, \\
+    	exttt{Connection: keep-alive}, \texttt{Upgrade-Insecure-Requests} y el conjunto de \texttt{Sec-Fetch-*}. \\
+    Para DVWA en \texttt{low}, sólo \texttt{Host} y las cookies son estrictamente necesarios.
         \item \textbf{Cookies de estado}: Dos valores resultan críticos: \texttt{PHPSESSID} (identificador de sesión) y \texttt{security=low}. Su ausencia provoca redirección o cambio de superficie de ataque. Se obtuvieron desde la subpestaña \emph{Cookies} asociada a la misma entrada de red.
-        \item \textbf{Indicador de éxito}: En respuestas posteriores, el HTML incorpora el fragmento literal ``Welcome to the password protected area'' y una referencia a \texttt{/hackable/users/<usuario>.jpg} únicamente cuando las credenciales son válidas; en fallos aparece el mensaje de error en un bloque \texttt{<pre>}. Este patrón textual se reutiliza más adelante para la detección automática en script e Hydra.
+    \item \textbf{Indicador de éxito}: El HTML exitoso contiene la cadena ``Welcome to the password protected area'' \\
+    y referencia a \texttt{/hackable/users/\allowbreak<usuario>.jpg} (sólo presente si las credenciales son válidas). \\
+    En fallos aparece un mensaje de error dentro de \texttt{<pre>}. Este patrón se reutiliza más adelante para la detección automática (script e Hydra).
 \end{itemize}
 Con la información precedente, la reconstrucción manual de la interacción se reduce a un comando cURL mínimo donde sólo se precisa la URL con sus parámetros y la inyección explícita de cookies:
 \begin{verbatim}
@@ -576,7 +581,7 @@ Los pares válidos obtenidos fueron:
 
 \subsection{Interacción con el formulario (python)}
 
-El arquetipo de ataque se implementa en \verb|brute_force_script.py| con la librería \verb|requests|. El flujo es el siguiente:
+El ataque se automatiza en \verb|brute_force_script.py| usando \verb|requests|. El flujo principal es:
 \begin{enumerate}
     \item El usuario del script ingresa la URL base (\verb|http://localhost:8889|), el valor vigente de la cookie \verb|PHPSESSID| y el nivel de seguridad configurado en DVWA. Con esa información se inicializa un objeto \verb|requests.Session()| que mantiene estado entre peticiones.
     \item El script fija \verb|/vulnerabilities/brute/| como punto final y carga diccionarios ligeros de usuarios y contraseñas. Cada intento reemplaza los campos \verb|username| y \verb|password| del formulario mediante parámetros GET, reproduciendo la estructura que DVWA espera.
@@ -585,7 +590,9 @@ El arquetipo de ataque se implementa en \verb|brute_force_script.py| con la libr
     \item Se introduce un retardo configurable (0.2 s por defecto) para evitar saturar el servidor o activar mitigaciones básicas basadas en tasa. El script imprime progreso en pantalla y al final resume las credenciales extraídas.
 \end{enumerate}
 
-Durante la redacción se verificó el comportamiento consultando el panel \verb|/dvwa/vulnerabilities/brute/| y observando cómo el script replica la misma consulta GET que un navegador, confirmando que los parámetros y el flujo de respuesta coinciden con los de la aplicación DVWA activa.
+Se verificó el comportamiento consultando el panel \verb|/dvwa/vulnerabilities/brute/| y observando \\
+cómo el script replica la misma consulta GET que un navegador. Los parámetros y el flujo de \\
+respuesta coinciden con los de la instancia DVWA activa.
 
 \subsection{Cabeceras HTTP (python)}
 
@@ -765,5 +772,22 @@ Esta es una estrategia proactiva que busca identificar y neutralizar a los ataca
 %\begin{table}[htbp]
 
 \section*{Conclusiones y comentarios}
+El laboratorio permitió contrastar distintas aproximaciones a un ataque de fuerza bruta sobre DVWA (nivel \texttt{low}) y extraer lecciones sobre eficacia técnica, huella de red y mitigación.
+
+	extbf{1. Herramientas y resultados.} Burp Suite Intruder facilitó la exploración inicial: identificación de parámetros, manipulación del espacio de búsqueda y observación de indicadores de éxito (mensaje y carga de imagen). Hydra demostró la mayor velocidad bruta gracias a su implementación optimizada y a la paralelización implícita, mientras que el script en Python ofreció el mayor control fino (pausas, encabezados, lógica de detección) a costa de menor rendimiento. El uso directo de cURL resultó útil para validar manualmente casos límite y construir una versión mínima reproducible de la solicitud.
+
+	extbf{2. Indicadores de éxito y diferenciación de respuestas.} El patrón dual (mensaje “Welcome to the password protected area” + imagen \texttt{/hackable/users/<usuario>.jpg}) se confirmó como señal inequívoca de autenticación válida. Las páginas fallidas mostraron el bloque \texttt{<pre>} de error y ausencia de la imagen, permitiendo reglas simples tanto en Hydra (parámetro \texttt{S=}) como en el script (búsqueda de cadena) sin requerir análisis estructural avanzado del DOM.
+
+	extbf{3. Comparación de tráfico.} Los paquetes generados por las tres herramientas retienen la semántica GET con parámetros visibles. Sin embargo, Hydra utiliza por defecto HTTP/1.0 y un \texttt{User-Agent} breve (“Mozilla/5.0 (Hydra)”), mientras Burp y el script (configurado) presentan encabezados más completos y persistencia (\texttt{keep-alive}). Estas diferencias pueden emplearse para detección heurística temprana. cURL, en uso manual, expone aún menos encabezados si no se añaden explícitamente.
+
+	extbf{4. Riesgos y alcance ético.} La reducción deliberada de diccionarios (subconjuntos de \texttt{rockyou.txt} y usuarios limitados) acota el tiempo de ataque y evita un barrido exhaustivo que podría considerarse abusivo. El experimento se mantuvo en un entorno controlado y local, alineado con buenas prácticas éticas de pruebas de seguridad.
+
+	extbf{5. Mitigaciones observadas/ausentes.} La configuración \texttt{low} de DVWA carece de controles de tasa, bloqueo progresivo, MFA, CAPTCHA o inspección contextual, lo que facilita el hallazgo rápido de credenciales triviales. Las cuatro contramedidas investigadas (limitación de tasa y bloqueo, CAPTCHA adaptativo, MFA y monitoreo basado en reputación/comportamiento) habrían elevado el costo del ataque; especialmente MFA, que neutraliza por completo la utilidad de credenciales filtradas en ausencia del segundo factor.
+
+	extbf{6. Lecciones técnicas.} (i) Una cadena de éxito clara simplifica la automatización; (ii) la elección de herramienta depende del objetivo inmediato (velocidad vs. sigilo vs. extensibilidad); (iii) normalizar encabezados y tiempos introduce “camuflaje” que reduce firmas detectables; (iv) la instrumentación temprana con Burp acelera el desarrollo de scripts personalizados.
+
+	extbf{7. Limitaciones.} El análisis se restringió a un entorno muy permisivo (sin WAF, sin CAPTCHA y sin rotación de tokens CSRF). Los resultados (tiempos, número de intentos) no extrapolan directamente a aplicaciones endurecidas. No se evaluó el impacto de latencias de red reales ni se probaron diccionarios avanzados
+
+	extbf{Conclusión general.} La combinación de observación manual (Burp), validación mínima (cURL), fuerza bruta de alto rendimiento (Hydra) y automatización controlada (Python) ofrece una panorámica integral del ciclo de explotación. Al mismo tiempo, evidencia que defensas relativamente sencillas (limitación de tasa, MFA, CAPTCHA contextual y monitoreo inteligente) bastan para degradar de forma significativa la viabilidad de este vector en entornos de producción.
 
 \end{document}
