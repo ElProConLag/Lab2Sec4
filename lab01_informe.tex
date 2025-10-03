@@ -84,7 +84,7 @@ Utilizando la aplicación web vulnerable DVWA
 \end{itemize}
 
 \section{Desarrollo de actividades según criterio de rúbrica}
-
+Para el desarrollo de las siguientes actividades, se utilizó una máquina con Fedora Workstation 42 y Ubuntu Desktop LTS. Se utilizó Podman y Docker respectivamente, manteniendo consistencia para los archivos de configuración del contenedor en ambos sistemas.
 \subsection{Levantamiento de docker para correr DVWA (dvwa)}
 Se obtiene la imagen oficial de DVWA desde Docker Hub (\url{https://hub.docker.com/r/vulnerables/web-dvwa}) y se ejecuta con Docker o Podman.
 \begin{verbatim}
@@ -155,7 +155,7 @@ La aplicación DVWA se encuentra disponible en \url{http://localhost:8889} y se 
     \label{fig:dvwastartscreen}
 \end{figure}
 \subsection{Obtención de consulta a replicar (burp)}
-Para obtener la consulta HTTP a replicar, se puede colocar utilizar cualquier combinación de usuario y contraseña en el formulario de inicio de sesión, y luego observar la solicitud generada en Burp Suite.
+Para obtener la consulta HTTP a replicar, se puede colocar utilizar cualquier combinación de usuario y contraseña en el formulario de inicio de sesión, y luego observar la solicitud generada en Burp Suite (figura \ref{fig:sidetoside}).
 \begin{verbatim}
 
 GET /vulnerabilities/brute/?username=jdsfnjdsbsj&password=jkfdnjfb&Login=Login HTTP/1.1
@@ -178,6 +178,12 @@ Priority: u=0, i
 
 
 \end{verbatim}
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Captura desde 2025-10-02 23-41-56.png}
+    \caption{Formulario para probar ataque de fuerza bruta, e historial HTTP con un registro}
+    \label{fig:sidetoside}
+\end{figure}
 \subsection{Identificación de campos a modificar (burp)}
 La secuencia de capturas ilustra el flujo mínimo para preparar un ataque con Intruder: (i) desde el historial HTTP se envía la petición del formulario a Intruder (Figura~\ref{fig:sendtointuder}); (ii) en la vista principal (Figura~\ref{fig:intruder}) se marcan como posiciones los parámetros \texttt{username} y \texttt{password}; (iii) cada posición recibe una lista corta de candidatos (Figuras~\ref{fig:payload1} y \ref{fig:payload2}); (iv) se configura el tipo de ataque \emph{Cluster bomb} que genera el producto cartesiano de ambas listas (Figura~\ref{fig:ataqueslistasimple}); y (v) al finalizar, una respuesta más larga y con el mensaje de bienvenida confirma credenciales válidas (Figura~\ref{fig:intrudersuccesfulattack}). Esta preparación permite comparar después los mismos diccionarios en cURL, Hydra y el script en Python.
 \begin{figure}
@@ -217,7 +223,14 @@ La secuencia de capturas ilustra el flujo mínimo para preparar un ataque con In
     \label{fig:intrudersuccesfulattack}
 \end{figure}
 \subsection{Obtención de diccionarios para el ataque (burp)}
-En el laboratorio se emplearon diccionarios reducidos construidos a partir de fuentes públicas reconocidas, haciendo énfasis en un uso \textbf{ético} y autorizado. El corpus base de contraseñas se obtuvo del fichero \texttt{rockyou.txt} descargado desde \url{https://weakpass.com/wordlists/rockyou.txt}; de él se extrajo un subconjunto ligero limitado a credenciales de muy alta frecuencia (patrones como \texttt{password}, \texttt{abc123}, \texttt{letmein}, \texttt{123456}) para acelerar las comparaciones entre herramientas. Para nombres de usuario se combinaron entradas mínimas de repositorios como SecLists (usuarios genéricos \texttt{admin}, \texttt{root}, \texttt{test}, etc.) con los identificadores visibles en la propia instancia DVWA (\texttt{admin}, \texttt{gordonb}, \texttt{pablo}, \texttt{smithy}). Tras eliminar duplicados y aplicar filtros de longitud y carácter (alfanumérico 4--12), se generaron las listas finales empleadas por Burp Intruder, Hydra y el script en Python: \texttt{usuarios\_light.txt} y \texttt{contrasenas\_light.txt}. Este enfoque reducido prioriza la demostración metodológica sobre el volumen bruto y disminuye el riesgo operativo.
+En el laboratorio se emplearon diccionarios reducidos construidos a partir de fuentes públicas reconocidas, haciendo énfasis en un uso \textbf{ético} y autorizado. El conjunto de contraseñas se obtuvo del fichero \texttt{rockyou.txt} descargado desde \url{https://weakpass.com/wordlists/rockyou.txt}; de él se extrajo un subconjunto ligero limitado a credenciales de muy alta frecuencia (patrones como \texttt{password}, \texttt{abc123}, \texttt{letmein}, \texttt{123456}) para acelerar las comparaciones entre herramientas. Para nombres de usuario se combinaron entradas mínimas (usuarios genéricos \texttt{admin}, \texttt{root}, \texttt{test}, etc.) con los identificadores visibles en la propia instancia DVWA (\texttt{admin}, \texttt{gordonb}, \texttt{pablo}, \texttt{smithy}). Tras eliminar duplicados y aplicar filtros de longitud y carácter (alfanumérico 4--12), se generaron las listas finales empleadas por Burp Intruder, Hydra y el script en Python: \texttt{usuarios\_light.txt} y \texttt{contrasenas\_light.txt}. Este enfoque reducido prioriza la demostración. En la figura \ref{fig:rockyouweb} se muestra un fragmento del diccionario original \texttt{rockyou.txt}. 
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Captura desde 2025-10-03 03-13-07.png}
+    \caption{Diccionario rockyou.txt (fragmento)}
+    \label{fig:rockyouweb}
+\end{figure}
+
 
 \subsection{Obtención de al menos 2 pares (burp)}
 La ejecución del ataque \emph{Cluster bomb} en Intruder produjo combinaciones cruzadas usuario/contraseña de las listas ligeras cargadas. En la Figura~\ref{fig:ventanaintruderdoble} se aprecian solicitudes con código 200 y longitudes de respuesta diferenciadas: las entradas donde el par coincide (\texttt{admin:password} y \texttt{gordonb:abc123}) muestran un tamaño ligeramente mayor y, al inspeccionar el cuerpo HTML (panel inferior), aparece el mensaje ``Welcome to the password protected area'' seguido de la imagen de perfil \texttt{/hackable/users/<usuario>.jpg}. Estas evidencias permiten confirmar de forma inequívoca dos credenciales válidas para DVWA en nivel de seguridad bajo.
